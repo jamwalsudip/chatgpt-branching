@@ -64,7 +64,7 @@ class ConversationTreeTracker {
       <div class="tree-header" id="tree-drag-handle">
         <div class="header-left">
           <button class="minimize-btn" title="Minimize">−</button>
-          <h3>Conversation Tree V2</h3>
+          <h3>Conversation Tree V2 - Sudip Branch</h3>
         </div>
         <div class="header-right">
           <button class="refresh-tree-btn" title="Refresh tree">↻</button>
@@ -366,6 +366,101 @@ class ConversationTreeTracker {
     this.loadSavedSize();
     
     console.log('Resize functionality setup complete');
+  }
+
+  scrollToMessage(node, depth) {
+    console.log(`Scrolling to message at depth ${depth}:`, node);
+    
+    try {
+      // Find all user messages in the conversation
+      const userMessages = document.querySelectorAll('[data-message-author-role="user"]');
+      
+      if (userMessages.length > depth && userMessages[depth]) {
+        const targetMessage = userMessages[depth];
+        
+        // Smooth scroll to the message
+        targetMessage.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+          inline: 'nearest'
+        });
+        
+        console.log(`Scrolled to message ${depth + 1}`);
+      } else {
+        console.log(`Message at depth ${depth} not found. Available messages: ${userMessages.length}`);
+        
+        // Fallback: scroll to the closest available message
+        if (userMessages.length > 0) {
+          const fallbackIndex = Math.min(depth, userMessages.length - 1);
+          userMessages[fallbackIndex].scrollIntoView({
+            behavior: 'smooth',
+            block: 'start',
+            inline: 'nearest'
+          });
+          console.log(`Scrolled to fallback message ${fallbackIndex + 1}`);
+        }
+      }
+    } catch (error) {
+      console.error('Error scrolling to message:', error);
+    }
+  }
+
+  addTooltip(element, node) {
+    let hoverTimeout;
+
+    element.addEventListener('mouseenter', () => {
+      // Show tooltip after 0.2 seconds
+      hoverTimeout = setTimeout(() => {
+        this.showTooltip(node, element);
+      }, 200);
+    });
+
+    element.addEventListener('mouseleave', () => {
+      // Clear timeout and hide tooltip immediately
+      clearTimeout(hoverTimeout);
+      this.hideTooltip();
+    });
+  }
+
+  showTooltip(node, circleElement) {
+    // Remove any existing tooltip
+    this.hideTooltip();
+
+    // Create tooltip element
+    const tooltip = document.createElement('div');
+    tooltip.className = 'node-tooltip';
+    tooltip.textContent = node.content;
+
+    // Get the circle's actual position and the container's position
+    const circleRect = circleElement.getBoundingClientRect();
+    const treeContainer = this.overlay.querySelector('.tree-container');
+    const containerRect = treeContainer.getBoundingClientRect();
+    
+    // Account for container scroll position
+    const scrollLeft = treeContainer.scrollLeft;
+    const scrollTop = treeContainer.scrollTop;
+    
+    // Calculate position relative to container content (including scroll offset)
+    const tooltipX = circleRect.right - containerRect.left + scrollLeft + 10; // Right of circle + 10px gap
+    const tooltipY = circleRect.top - containerRect.top + scrollTop + (circleRect.height / 2) - 10; // Center of circle
+    
+    tooltip.style.left = `${tooltipX}px`;
+    tooltip.style.top = `${tooltipY}px`;
+
+    // Add to tree container
+    treeContainer.appendChild(tooltip);
+
+    // Store reference for cleanup
+    this.currentTooltip = tooltip;
+    
+    console.log(`Tooltip positioned at: ${tooltipX}, ${tooltipY} (scroll: ${scrollLeft}, ${scrollTop}, circle: ${circleRect.right}, ${circleRect.top})`);
+  }
+
+  hideTooltip() {
+    if (this.currentTooltip) {
+      this.currentTooltip.remove();
+      this.currentTooltip = null;
+    }
   }
 
   updateTreeContainerHeight(overlayHeight) {
@@ -1039,6 +1134,26 @@ class ConversationTreeTracker {
     gradient.appendChild(stop2);
     defs.appendChild(gradient);
     
+    // Hover gradient for nodes
+    const hoverGradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+    hoverGradient.setAttribute('id', 'nodeGradientHover');
+    hoverGradient.setAttribute('x1', '0%');
+    hoverGradient.setAttribute('y1', '0%');
+    hoverGradient.setAttribute('x2', '100%');
+    hoverGradient.setAttribute('y2', '100%');
+    
+    const hstop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+    hstop1.setAttribute('offset', '0%');
+    hstop1.setAttribute('stop-color', '#7c3aed');
+    
+    const hstop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+    hstop2.setAttribute('offset', '100%');
+    hstop2.setAttribute('stop-color', '#8b5cf6');
+    
+    hoverGradient.appendChild(hstop1);
+    hoverGradient.appendChild(hstop2);
+    defs.appendChild(hoverGradient);
+    
     // Branch gradient
     const branchGradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
     branchGradient.setAttribute('id', 'branchGradient');
@@ -1141,6 +1256,16 @@ class ConversationTreeTracker {
         circle.setAttribute('stroke-width', '3');
         circle.setAttribute('filter', 'url(#dropShadow)');
         circle.classList.add('tree-node');
+        circle.style.cursor = 'pointer';
+        
+        // Add click handler for scrolling to message
+        circle.addEventListener('click', () => {
+          this.scrollToMessage(node, depth);
+        });
+        
+        // Add tooltip functionality
+        this.addTooltip(circle, node);
+        
         svg.appendChild(circle);
         
         // Add node number with better styling

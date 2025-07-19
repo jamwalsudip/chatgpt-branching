@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body {
+      width: 300px;
+      padding: 20px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    
+    .logo {
+      width: 48px;
+      height: 48px;
+      margin: 0 auto 10px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .logo svg {
+      width: 24px;
+      height: 24px;
+      color: white;
+    }
+    
+    h1 {
+      font-size: 18px;
+      margin: 0;
+      color: #333;
+    }
+    
+    .subtitle {
+      font-size: 14px;
+      color: #666;
+      margin: 5px 0 0 0;
+    }
+    
+    .status {
+      padding: 12px;
+      border-radius: 8px;
+      margin: 15px 0;
+      text-align: center;
+      font-size: 14px;
+    }
+    
+    .status.active {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    
+    .status.inactive {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    
+    .features {
+      margin: 20px 0;
+    }
+    
+    .feature {
+      display: flex;
+      align-items: center;
+      margin: 10px 0;
+      font-size: 14px;
+      color: #555;
+    }
+    
+    .feature-icon {
+      width: 16px;
+      height: 16px;
+      margin-right: 10px;
+      color: #667eea;
+    }
+    
+    .footer {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 12px;
+      color: #888;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="6" y1="3" x2="6" y2="15"></line>
+        <circle cx="18" cy="6" r="3"></circle>
+        <circle cx="6" cy="18" r="3"></circle>
+        <path d="m18 9-3 3 3 3"></path>
+      </svg>
+    </div>
+    <h1>ChatGPT Visual Branching</h1>
+    <p class="subtitle">Enhanced conversation branching</p>
+  </div>
+  
+  <div id="status" class="status">
+    <span id="status-text">Checking status...</span>
+  </div>
+  
+  <div class="features">
+    <div class="feature">
+      <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="22,12 18,12 15,21 9,3 6,12 2,12"></polyline>
+      </svg>
+      Side-by-side branch comparison
+    </div>
+    <div class="feature">
+      <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="3"></circle>
+        <path d="m12 1 0 6m0 6 0 6m11-7-6 0m-6 0-6 0"></path>
+      </svg>
+      Visual branch navigation
+    </div>
+    <div class="feature">
+      <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="m9 12 2 2 4-4"></path>
+        <path d="M21 12c.552 0 1-.448 1-1V5c0-.552-.448-1-1-1H3c-.552 0-1 .448-1 1v6c0 .552.448 1 1 1h18z"></path>
+      </svg>
+      Branch selection & continuation
+    </div>
+  </div>
+  
+  <div class="footer">
+    Visit ChatGPT to use branching features
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body {
+      width: 300px;
+      padding: 20px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    
+    .logo {
+      width: 48px;
+      height: 48px;
+      margin: 0 auto 10px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .logo svg {
+      width: 24px;
+      height: 24px;
+      color: white;
+    }
+    
+    h1 {
+      font-size: 18px;
+      margin: 0;
+      color: #333;
+    }
+    
+    .subtitle {
+      font-size: 14px;
+      color: #666;
+      margin: 5px 0 0 0;
+    }
+    
+    .status {
+      padding: 12px;
+      border-radius: 8px;
+      margin: 15px 0;
+      text-align: center;
+      font-size: 14px;
+    }
+    
+    .status.active {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    
+    .status.inactive {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    
+    .features {
+      margin: 20px 0;
+    }
+    
+    .feature {
+      display: flex;
+      align-items: center;
+      margin: 10px 0;
+      font-size: 14px;
+      color: #555;
+    }
+    
+    .feature-icon {
+      width: 16px;
+      height: 16px;
+      margin-right: 10px;
+      color: #667eea;
+    }
+    
+    .footer {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 12px;
+      color: #888;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="5" cy="6" r="3"></circle>
+        <path d="M5 9v6"></path>
+        <circle cx="5" cy="18" r="3"></circle>
+        <path d="M12 3v18"></path>
+        <circle cx="18" cy="9" r="3"></circle>
+        <path d="M18 12v6"></path>
+        <circle cx="18" cy="21" r="3"></circle>
+      </svg>
+    </div>
+    <h1>ChatGPT Conversation Tree</h1>
+    <p class="subtitle">Visual conversation depth tracker</p>
+  </div>
+  
+  <div id="status" class="status">
+    <span id="status-text">Checking status...</span>
+  </div>
+  
+  <div class="features">
+    <div class="feature">
+      <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="3"></circle>
+        <path d="M12 1v6m0 6v6"></path>
+      </svg>
+      Track conversation depth
+    </div>
+    <div class="feature">
+      <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M6 3v12"></path>
+        <circle cx="18" cy="9" r="3"></circle>
+        <path d="M6 21l12-12"></path>
+      </svg>
+      Visualize conversation branches
+    </div>
+    <div class="feature">
+      <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5Z"></path>
+      </svg>
+      Persistent across page reloads
+    </div>
+  </div>
+  
+  <div class="footer">
+    Visit ChatGPT to see conversation tree
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>

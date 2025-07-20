@@ -2,10 +2,9 @@
 
 #conversation-tree-overlay {
   position: fixed !important;
-  top: 20px !important;
-  right: 20px !important;
-  width: 25vw !important;
-  height: 25vh !important;
+  /* Default size – JS can override these. Remove !important so inline styles win when resizing. */
+  width: 25vw;
+  height: 25vh;
   min-width: 10vw !important;
   min-height: 10vh !important;
   max-width: 50vw !important;
@@ -63,6 +62,8 @@
 #conversation-tree-overlay.minimized .header-left {
   justify-content: center !important;
 }
+
+
 
 .tree-header {
   display: flex;
@@ -286,8 +287,6 @@
   #conversation-tree-overlay {
     width: 40vw;
     height: 35vh;
-    top: 10px;
-    right: 10px;
   }
 
   .tree-header h3 {
@@ -502,4 +501,40 @@
     opacity: 1;
     transform: translateY(0);
   }
+}
+/* Nat
+ive ChatGPT Toggle Button */
+.tree-toggle-btn {
+  /* Base styles will be applied via JavaScript to match ChatGPT's native buttons */
+  font-family: inherit !important;
+  box-sizing: border-box !important;
+}
+
+.tree-toggle-btn svg {
+  width: 20px !important;
+  height: 20px !important;
+  stroke-width: 2 !important;
+  /* Rotate the original branching icon */
+  transform: rotate(180deg) !important;
+}
+
+/* Ensure the toggle button integrates well with ChatGPT's header */
+.tree-toggle-btn:focus {
+  outline: 2px solid rgba(16, 163, 127, 0.5) !important;
+  outline-offset: 2px !important;
+}
+
+.tree-toggle-btn:focus:not(:focus-visible) {
+  outline: none !important;
+}
+
+/* Animation for smooth transitions - exclude background-color to allow instant toggle */
+.tree-toggle-btn {
+  transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* Ensure proper z-index for the toggle button */
+.tree-toggle-btn {
+  z-index: 1000 !important;
+  position: relative !important;
 }

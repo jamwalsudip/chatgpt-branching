@@ -905,8 +905,8 @@ class ConversationTreeTracker {
         startX = window.innerWidth - rect.width - 50; // Default right padding
       }
     } else {
-        const rect = this.overlay.getBoundingClientRect();
-        startX = window.innerWidth - rect.width - 50; // Default right padding
+      const rect = this.overlay.getBoundingClientRect();
+      startX = window.innerWidth - rect.width - 50; // Default right padding
     }
     this.overlay.style.transform = `translate3d(${startX}px, ${startY}px, 0)`;
 
@@ -984,8 +984,8 @@ class ConversationTreeTracker {
       const cls = e.target.classList;
       dragNorth = cls.contains('n');
       dragSouth = cls.contains('s');
-      dragEast  = cls.contains('e');
-      dragWest  = cls.contains('w');
+      dragEast = cls.contains('e');
+      dragWest = cls.contains('w');
 
       document.addEventListener('mousemove', doResize);
       document.addEventListener('mouseup', stopResize);
@@ -1006,12 +1006,12 @@ class ConversationTreeTracker {
       if (dragEast) newWidth = startWidth + deltaX;
       if (dragWest) {
         newWidth = startWidth - deltaX;
-        newX     = startTransform.m41 + deltaX;
+        newX = startTransform.m41 + deltaX;
       }
       if (dragSouth) newHeight = startHeight + deltaY;
       if (dragNorth) {
         newHeight = startHeight - deltaY;
-        newY      = startTransform.m42 + deltaY;
+        newY = startTransform.m42 + deltaY;
       }
 
       const padding = 50;
@@ -1032,7 +1032,7 @@ class ConversationTreeTracker {
       // Clamp position
       newX = Math.max(padding, newX);
       newY = Math.max(padding, newY);
-      
+
       if (newX + newWidth > viewportWidth - padding) {
         newWidth = viewportWidth - padding - newX;
       }
@@ -1626,27 +1626,30 @@ class ConversationTreeTracker {
           console.log(`✓ Message ${index} has ${branchInfo.totalBranches} branches, current: ${branchInfo.currentBranch + 1}`);
           console.log(`  Branch text: "${branchInfo.branchText}", Arrows: L:${branchInfo.hasLeftArrow} R:${branchInfo.hasRightArrow}`);
 
-          // Create nodes for all branches at this depth
-          for (let branchIndex = 0; branchIndex < branchInfo.totalBranches; branchIndex++) {
-            const isCurrentBranch = branchIndex === branchInfo.currentBranch;
-            let branchContent;
-
-            if (isCurrentBranch) {
-              branchContent = content; // Show actual content for current branch
+          // Use the branches array from the enhanced branch detection
+          branchInfo.branches.forEach((branch) => {
+            let nodeContent;
+            if (branch.isCurrentBranch) {
+              // Current branch: show actual message content
+              nodeContent = content.substring(0, 50) + (content.length > 50 ? '...' : '');
             } else {
-              branchContent = `Branch ${branchIndex + 1}`; // Placeholder for other branches
+              // Other branches: show placeholder with branch number
+              nodeContent = branch.label; // This will be "Branch 1", "Branch 3", etc.
             }
 
             nodes.push({
-              id: `dom_${index}_branch_${branchIndex}`,
+              id: `dom_${index}_branch_${branch.branchIndex}`,
               depth: index,
-              branchIndex: branchIndex,
-              content: branchContent.substring(0, 50) + (branchContent.length > 50 ? '...' : ''),
-              isCurrentBranch: isCurrentBranch,
+              branchIndex: branch.branchIndex,
+              branchNumber: branch.branchNumber,
+              content: nodeContent,
+              isCurrentBranch: branch.isCurrentBranch,
+              isPlaceholder: !branch.isCurrentBranch,
               totalBranches: branchInfo.totalBranches,
+              messageElement: branch.messageElement, // Store reference for navigation
               branchInfo: branchInfo // Store full branch info for debugging
             });
-          }
+          });
         } else {
           // Single node (no branching)
           console.log(`- Message ${index}: No branches detected`);
@@ -1656,9 +1659,19 @@ class ConversationTreeTracker {
             branchIndex: 0,
             content: content.substring(0, 50) + (content.length > 50 ? '...' : ''),
             isCurrentBranch: true,
+            isPlaceholder: false,
             totalBranches: 1
           });
         }
+      });
+
+      // Sort nodes to ensure proper left-to-right branch ordering
+      // First by depth, then by branchIndex for consistent branch positioning
+      nodes.sort((a, b) => {
+        if (a.depth !== b.depth) {
+          return a.depth - b.depth; // Sort by depth first
+        }
+        return a.branchIndex - b.branchIndex; // Then by branch index for left-to-right ordering
       });
 
       this.conversationTree.nodes = nodes;
@@ -1674,15 +1687,19 @@ class ConversationTreeTracker {
   detectBranchesInMessage(messageElement, messageIndex) {
     console.log(`=== Analyzing message ${messageIndex} for branches ===`);
 
-    // Look for specific ARIA labels for Previous/Next response buttons
-    const prevButton = messageElement.querySelector('button[aria-label="Previous response"]');
-    const nextButton = messageElement.querySelector('button[aria-label="Next response"]');
+    // 1. Locate the enclosing article
+    const turnArticle = messageElement.closest('[data-testid^="conversation-turn"]') ||
+      messageElement;
+
+    // 2. Find navigation buttons inside that article
+    const prevButton = turnArticle.querySelector('button[aria-label="Previous response"]');
+    const nextButton = turnArticle.querySelector('button[aria-label="Next response"]');
 
     console.log(`Previous button found: ${!!prevButton}, Next button found: ${!!nextButton}`);
 
     // If we don't find the specific labels, try broader patterns
-    let leftArrow = prevButton || messageElement.querySelector('button[aria-label*="Previous"]');
-    let rightArrow = nextButton || messageElement.querySelector('button[aria-label*="Next"]');
+    let leftArrow = prevButton || turnArticle.querySelector('button[aria-label*="Previous"]');
+    let rightArrow = nextButton || turnArticle.querySelector('button[aria-label*="Next"]');
 
     // Check button states
     const leftDisabled = leftArrow && (leftArrow.disabled || leftArrow.getAttribute('aria-disabled') === 'true');
@@ -1695,34 +1712,40 @@ class ConversationTreeTracker {
     let currentBranch = 0;
     let totalBranches = 1;
 
-    if (leftArrow || rightArrow) {
-      // If we have navigation buttons, look for the numerical indicator
-      const textContent = messageElement.textContent || '';
-      const branchMatch = textContent.match(/(\d+)\s*\/\s*(\d+)/);
+    // If we have navigation buttons, look for the numerical indicator
+    // Prefer explicit branch-indicator element (e.g. <div class="tabular-nums">2/3</div>) if present
+    let indicatorEl = turnArticle.querySelector('[class*="tabular-nums"]');
+    console.log('Indicator element:', indicatorEl);
+    const textContent = indicatorEl ? indicatorEl.textContent.trim() : (turnArticle.textContent || '');
+    const branchMatch = textContent.match(/(\d+)\s*\/\s*(\d+)/);
 
-      if (branchMatch) {
-        branchText = branchMatch[0];
-        currentBranch = parseInt(branchMatch[1]) - 1; // Convert to 0-based index
-        totalBranches = parseInt(branchMatch[2]);
-        console.log(`Found branch indicator: ${branchText} -> Current: ${currentBranch}, Total: ${totalBranches}`);
+    if (branchMatch) {
+      branchText = branchMatch[0];
+      currentBranch = parseInt(branchMatch[1]) - 1; // Convert to 0-based index
+      totalBranches = parseInt(branchMatch[2]);
+      console.log(`Found branch indicator: ${branchText} -> Current: ${currentBranch}, Total: ${totalBranches}`);
+    } else if (leftArrow || rightArrow) {
+      // Arrows present but no numeric indicator: infer from button states
+      totalBranches = 2; // Minimum assumption
+
+      if (leftDisabled && !rightDisabled) {
+        currentBranch = 0; // First branch
+      } else if (!leftDisabled && rightDisabled) {
+        currentBranch = 1; // Assume second branch (could be last)
+      } else if (!leftDisabled && !rightDisabled) {
+        currentBranch = 1; // Middle branch
+        totalBranches = 3; // Minimum for middle position
       } else {
-        // If we have arrows but no text, infer from button states
-        totalBranches = 2; // Minimum assumption
-
-        if (leftDisabled && !rightDisabled) {
-          currentBranch = 0; // First branch
-        } else if (!leftDisabled && rightDisabled) {
-          currentBranch = 1; // Assume second branch (could be last)
-        } else if (!leftDisabled && !rightDisabled) {
-          currentBranch = 1; // Middle branch
-          totalBranches = 3; // Minimum for middle position
-        } else {
-          currentBranch = 0; // Default
-        }
-
-        console.log(`No text indicator, inferred from button states: Current: ${currentBranch}, Total: ${totalBranches}`);
+        currentBranch = 0; // Default
       }
+
+      console.log(`No text indicator, inferred from button states: Current: ${currentBranch}, Total: ${totalBranches}`);
+    } else {
+      // No arrows and no numeric indicator => single branch
+      currentBranch = 0;
+      totalBranches = 1;
     }
+
 
     // Additional validation: look for copy/edit buttons to confirm this is a user message
     const hasCopyButton = !!messageElement.querySelector('[data-testid="copy-turn-action-button"]');
@@ -1730,6 +1753,23 @@ class ConversationTreeTracker {
 
     console.log(`Copy button: ${hasCopyButton}, Edit button: ${hasEditButton}`);
     console.log(`Final result - Message ${messageIndex}: ${totalBranches} branches, current: ${currentBranch}`);
+
+    // Create branch information for ALL branches at this depth
+    const branches = [];
+    for (let branchIndex = 0; branchIndex < totalBranches; branchIndex++) {
+      const isCurrentBranch = branchIndex === currentBranch;
+      branches.push({
+        branchNumber: branchIndex + 1,        // 1-based branch number for display
+        branchIndex: branchIndex,             // 0-based index for logic
+        isCurrentBranch: isCurrentBranch,
+        label: isCurrentBranch ? null : `Branch ${branchIndex + 1}`, // Placeholder label for non-current branches
+        messageElement: messageElement        // Reference to DOM element for navigation
+      });
+    }
+
+    console.log(
+      `Message ${messageIndex} indicator: "${branchText}" -> total=${totalBranches}`
+    );
 
     return {
       currentBranch,
@@ -1740,8 +1780,90 @@ class ConversationTreeTracker {
       leftDisabled,
       rightDisabled,
       hasCopyButton,
-      hasEditButton
+      hasEditButton,
+      branches // Add the branches array
     };
+  }
+
+  // Navigation function to switch between branches
+  navigateToBranch(messageElement, targetBranchIndex, currentBranchIndex) {
+    console.log(`=== Navigating from branch ${currentBranchIndex} to branch ${targetBranchIndex} ===`);
+
+    if (!messageElement) {
+      console.error('No message element provided for navigation');
+      return false;
+    }
+
+    // Find the enclosing article first, then search for navigation buttons within it
+    const turnArticle = messageElement.closest('[data-testid^="conversation-turn"]') ||
+      messageElement;
+
+    const prevButton = turnArticle.querySelector('button[aria-label="Previous response"]');
+    const nextButton = turnArticle.querySelector('button[aria-label="Next response"]');
+
+    if (!prevButton && !nextButton) {
+      console.error('No navigation buttons found in message element');
+      return false;
+    }
+
+    const currentBranch = currentBranchIndex;
+    const targetBranch = targetBranchIndex;
+
+    console.log(`Current branch: ${currentBranch}, Target branch: ${targetBranch}`);
+
+    // Calculate direction and number of clicks needed
+    let clicksNeeded = 0;
+    let buttonToClick = null;
+
+    if (targetBranch > currentBranch) {
+      // Navigate forward (right)
+      clicksNeeded = targetBranch - currentBranch;
+      buttonToClick = nextButton;
+      console.log(`Going forward ${clicksNeeded} clicks`);
+    } else if (targetBranch < currentBranch) {
+      // Navigate backward (left)
+      clicksNeeded = currentBranch - targetBranch;
+      buttonToClick = prevButton;
+      console.log(`Going backward ${clicksNeeded} clicks`);
+    } else {
+      console.log('Already on target branch');
+      return true;
+    }
+
+    if (!buttonToClick) {
+      console.error(`No ${targetBranch > currentBranch ? 'next' : 'previous'} button available`);
+      return false;
+    }
+
+    // Check if button is disabled
+    if (buttonToClick.disabled || buttonToClick.getAttribute('aria-disabled') === 'true') {
+      console.error(`Navigation button is disabled, cannot navigate to branch ${targetBranch}`);
+      return false;
+    }
+
+    // Perform the navigation clicks
+    let clickCount = 0;
+    const performClick = () => {
+      if (clickCount >= clicksNeeded) {
+        console.log(`Navigation completed: reached branch ${targetBranch}`);
+        // Refresh the tree after navigation
+        setTimeout(() => {
+          this.extractConversationFromDOM();
+        }, 500); // Give time for DOM to update
+        return true;
+      }
+
+      console.log(`Performing click ${clickCount + 1} of ${clicksNeeded}`);
+      buttonToClick.click();
+      clickCount++;
+
+      // Schedule next click with a small delay to allow DOM updates
+      setTimeout(performClick, 200);
+    };
+
+    // Start the clicking sequence
+    performClick();
+    return true;
   }
 
   renderTree() {
@@ -1921,8 +2043,8 @@ class ConversationTreeTracker {
           } else {
             // Non-current branch (muted)
             fillColor = '#94a3b8';
-            strokeColor = '#64748b';
-            opacity = 0.6;
+            strokeColor = '#9ca3af';
+            opacity = 0.4;
           }
         } else {
           // Regular linear node
@@ -1938,9 +2060,18 @@ class ConversationTreeTracker {
         circle.classList.add('tree-node');
         circle.style.cursor = 'pointer';
 
-        // Add click handler for scrolling to message
+        // Add click handler for branch navigation and message scrolling
         circle.addEventListener('click', () => {
-          this.scrollToMessage(node, depth);
+          console.log(`Clicked node: depth=${depth}, branchIndex=${node.branchIndex}, isCurrentBranch=${node.isCurrentBranch}`);
+
+          // If this is a branch placeholder (not current branch), navigate to it
+          if (node.isCurrentBranch === false && node.messageElement && node.branchInfo) {
+            console.log(`Navigating to branch ${node.branchIndex} from current branch ${node.branchInfo.currentBranch}`);
+            this.navigateToBranch(node.messageElement, node.branchIndex, node.branchInfo.currentBranch);
+          } else {
+            // If it's the current branch or a regular node, just scroll to it
+            this.scrollToMessage(node, depth);
+          }
         });
 
         // Add tooltip functionality
@@ -1981,7 +2112,7 @@ class ConversationTreeTracker {
       if (depth === 0) return; // Skip root level
 
       const parentDepth = depth - 1;
-      const parentNodes = depthGroups.get(parentDepth) || [];
+      const parentNodes = (depthGroups.get(parentDepth) || []).filter(p => !p.isPlaceholder);
 
       nodes.forEach((node) => {
         const nodePos = nodePositions.get(node.id);

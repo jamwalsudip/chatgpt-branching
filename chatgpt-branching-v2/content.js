@@ -905,8 +905,8 @@ class ConversationTreeTracker {
         startX = window.innerWidth - rect.width - 50; // Default right padding
       }
     } else {
-      const rect = this.overlay.getBoundingClientRect();
-      startX = window.innerWidth - rect.width - 50; // Default right padding
+        const rect = this.overlay.getBoundingClientRect();
+        startX = window.innerWidth - rect.width - 50; // Default right padding
     }
     this.overlay.style.transform = `translate3d(${startX}px, ${startY}px, 0)`;
 
@@ -1032,7 +1032,7 @@ class ConversationTreeTracker {
       // Clamp position
       newX = Math.max(padding, newX);
       newY = Math.max(padding, newY);
-
+      
       if (newX + newWidth > viewportWidth - padding) {
         newWidth = viewportWidth - padding - newX;
       }
@@ -1072,6 +1072,11 @@ class ConversationTreeTracker {
   scrollToMessage(node, depth) {
     console.log(`Scrolling to message at depth ${depth}:`, node);
 
+    // Allow node to be null when we just want to scroll by depth after navigation
+    if (node == null) {
+      node = { content: `Depth ${depth}` };
+    }
+
     try {
       // Find all user messages in the conversation
       const userMessages = document.querySelectorAll('[data-message-author-role="user"]');
@@ -1109,11 +1114,15 @@ class ConversationTreeTracker {
   addTooltip(element, node) {
     let hoverTimeout;
 
+    // Use a 100ms debounce for tooltip creation (increased from 50ms)
     element.addEventListener('mouseenter', () => {
-      // Show tooltip after 0.2 seconds
+      // Clear any existing timeout
+      clearTimeout(hoverTimeout);
+      
+      // Show tooltip after 100ms debounce to reduce creation frequency
       hoverTimeout = setTimeout(() => {
         this.showTooltip(node, element);
-      }, 200);
+      }, 100);
     });
 
     element.addEventListener('mouseleave', () => {
@@ -1127,10 +1136,18 @@ class ConversationTreeTracker {
     // Remove any existing tooltip
     this.hideTooltip();
 
-    // Create tooltip element
-    const tooltip = document.createElement('div');
-    tooltip.className = 'node-tooltip';
+    // Reuse existing tooltip element or create new one (tooltip pooling)
+    if (!this.tooltipElement) {
+      this.tooltipElement = document.createElement('div');
+      this.tooltipElement.className = 'node-tooltip';
+    }
+    
+    const tooltip = this.tooltipElement;
+    
+    // Update content only if it changed
+    if (tooltip.textContent !== node.content) {
     tooltip.textContent = node.content;
+    }
 
     // Get the circle's actual position and the container's position
     const circleRect = circleElement.getBoundingClientRect();
@@ -1483,6 +1500,18 @@ class ConversationTreeTracker {
   observeConversation() {
     // Watch for DOM changes to detect new messages and branch changes
     const observer = new MutationObserver((mutations) => {
+      // Skip processing entirely if streaming
+      const isStreaming = document.querySelector('[data-streaming="true"]');
+      if (isStreaming) {
+        // Set up a single check for when streaming ends if not already set
+        if (!this.streamingEndTimeout) {
+          this.streamingEndTimeout = setTimeout(() => {
+            this.checkStreamingEnd();
+          }, 1000);
+        }
+        return;
+      }
+
       let shouldUpdate = false;
 
       try {
@@ -1490,12 +1519,13 @@ class ConversationTreeTracker {
           if (mutation.type === 'childList') {
             mutation.addedNodes.forEach((node) => {
               if (node.nodeType === Node.ELEMENT_NODE) {
-                // Check if new messages or branch indicators were added
+                // Be more selective - only check for specific important changes
                 try {
                   if (node.querySelector && (
                     node.querySelector('[data-message-author-role="user"]') ||
-                    node.querySelector('button') ||  // Simplified - just look for any buttons
-                    (node.textContent && node.textContent.match(/\d+\s*\/\s*\d+/))
+                    node.querySelector('[class*="tabular-nums"]') || // Branch indicators
+                    node.querySelector('button[aria-label*="Previous response"]') ||
+                    node.querySelector('button[aria-label*="Next response"]')
                   )) {
                     shouldUpdate = true;
                   }
@@ -1509,9 +1539,11 @@ class ConversationTreeTracker {
               }
             });
           } else if (mutation.type === 'attributes') {
-            // Watch for changes in button states (disabled/enabled arrows)
+            // Only watch for specific button state changes
             if (mutation.target.tagName === 'BUTTON' &&
-              (mutation.attributeName === 'disabled' || mutation.attributeName === 'aria-disabled')) {
+              (mutation.attributeName === 'disabled' || mutation.attributeName === 'aria-disabled') &&
+              (mutation.target.getAttribute('aria-label')?.includes('Previous response') ||
+               mutation.target.getAttribute('aria-label')?.includes('Next response'))) {
               shouldUpdate = true;
             }
           }
@@ -1529,6 +1561,7 @@ class ConversationTreeTracker {
           this.extractConversationFromDOM();
         }, 500);
       }
+
     });
 
     observer.observe(document.body, {
@@ -1537,6 +1570,20 @@ class ConversationTreeTracker {
       attributes: true,
       attributeFilter: ['disabled', 'aria-disabled']
     });
+  }
+
+  checkStreamingEnd() {
+    const stillStreaming = document.querySelector('[data-streaming="true"]');
+    if (!stillStreaming) {
+      console.log('Streaming ended, updating tree now');
+      this.streamingEndTimeout = null;
+      this.extractConversationFromDOM();
+    } else {
+      // Still streaming, check again in a moment
+      this.streamingEndTimeout = setTimeout(() => {
+        this.checkStreamingEnd();
+      }, 500);
+    }
   }
 
   checkForNewMessages() {
@@ -1712,34 +1759,34 @@ class ConversationTreeTracker {
     let currentBranch = 0;
     let totalBranches = 1;
 
-    // If we have navigation buttons, look for the numerical indicator
+      // If we have navigation buttons, look for the numerical indicator
     // Prefer explicit branch-indicator element (e.g. <div class="tabular-nums">2/3</div>) if present
     let indicatorEl = turnArticle.querySelector('[class*="tabular-nums"]');
     console.log('Indicator element:', indicatorEl);
     const textContent = indicatorEl ? indicatorEl.textContent.trim() : (turnArticle.textContent || '');
-    const branchMatch = textContent.match(/(\d+)\s*\/\s*(\d+)/);
+      const branchMatch = textContent.match(/(\d+)\s*\/\s*(\d+)/);
 
-    if (branchMatch) {
-      branchText = branchMatch[0];
-      currentBranch = parseInt(branchMatch[1]) - 1; // Convert to 0-based index
-      totalBranches = parseInt(branchMatch[2]);
-      console.log(`Found branch indicator: ${branchText} -> Current: ${currentBranch}, Total: ${totalBranches}`);
+      if (branchMatch) {
+        branchText = branchMatch[0];
+        currentBranch = parseInt(branchMatch[1]) - 1; // Convert to 0-based index
+        totalBranches = parseInt(branchMatch[2]);
+        console.log(`Found branch indicator: ${branchText} -> Current: ${currentBranch}, Total: ${totalBranches}`);
     } else if (leftArrow || rightArrow) {
       // Arrows present but no numeric indicator: infer from button states
-      totalBranches = 2; // Minimum assumption
+        totalBranches = 2; // Minimum assumption
 
-      if (leftDisabled && !rightDisabled) {
-        currentBranch = 0; // First branch
-      } else if (!leftDisabled && rightDisabled) {
-        currentBranch = 1; // Assume second branch (could be last)
-      } else if (!leftDisabled && !rightDisabled) {
-        currentBranch = 1; // Middle branch
-        totalBranches = 3; // Minimum for middle position
-      } else {
-        currentBranch = 0; // Default
-      }
+        if (leftDisabled && !rightDisabled) {
+          currentBranch = 0; // First branch
+        } else if (!leftDisabled && rightDisabled) {
+          currentBranch = 1; // Assume second branch (could be last)
+        } else if (!leftDisabled && !rightDisabled) {
+          currentBranch = 1; // Middle branch
+          totalBranches = 3; // Minimum for middle position
+        } else {
+          currentBranch = 0; // Default
+        }
 
-      console.log(`No text indicator, inferred from button states: Current: ${currentBranch}, Total: ${totalBranches}`);
+        console.log(`No text indicator, inferred from button states: Current: ${currentBranch}, Total: ${totalBranches}`);
     } else {
       // No arrows and no numeric indicator => single branch
       currentBranch = 0;
@@ -1786,7 +1833,18 @@ class ConversationTreeTracker {
   }
 
   // Navigation function to switch between branches
-  navigateToBranch(messageElement, targetBranchIndex, currentBranchIndex) {
+  navigateToBranch(messageElement, targetBranchIndex, currentBranchIndex, depthToScroll) {
+    // --- Robustness patch ---
+    // When the tree is restored from localStorage the stored messageElement is
+    // no longer a live HTMLElement (JSON lost the prototype).  If so, try to
+    // re-query the current DOM to find the user message at the given depth.
+    if (!(messageElement instanceof Element) || typeof messageElement.closest !== 'function') {
+      const userMsgs = document.querySelectorAll('[data-message-author-role="user"]');
+      if (typeof depthToScroll === 'number' && depthToScroll < userMsgs.length) {
+        console.warn('[nav] recovered messageElement from fresh DOM query');
+        messageElement = userMsgs[depthToScroll];
+      }
+    }
     console.log(`=== Navigating from branch ${currentBranchIndex} to branch ${targetBranchIndex} ===`);
 
     if (!messageElement) {
@@ -1794,75 +1852,108 @@ class ConversationTreeTracker {
       return false;
     }
 
-    // Find the enclosing article first, then search for navigation buttons within it
-    const turnArticle = messageElement.closest('[data-testid^="conversation-turn"]') ||
-      messageElement;
-
-    const prevButton = turnArticle.querySelector('button[aria-label="Previous response"]');
-    const nextButton = turnArticle.querySelector('button[aria-label="Next response"]');
-
-    if (!prevButton && !nextButton) {
-      console.error('No navigation buttons found in message element');
+    // Identify the unique conversation turn via its data-testid so we can re-locate it
+    const originalArticle = messageElement.closest('[data-testid^="conversation-turn"]') || messageElement;
+    if (!originalArticle) {
+      console.error('Unable to locate conversation-turn article for navigation');
       return false;
     }
 
-    const currentBranch = currentBranchIndex;
+    const dataTestId = originalArticle.getAttribute('data-testid');
+    if (!dataTestId) {
+      console.error('No data-testid found for the conversation turn');
+      return false;
+    }
+
     const targetBranch = targetBranchIndex;
 
-    console.log(`Current branch: ${currentBranch}, Target branch: ${targetBranch}`);
+    // Helper: fetch the *current* article corresponding to this turn number
+    const getCurrentArticle = () => document.querySelector(`[data-testid="${dataTestId}"]`);
 
-    // Calculate direction and number of clicks needed
-    let clicksNeeded = 0;
-    let buttonToClick = null;
-
-    if (targetBranch > currentBranch) {
-      // Navigate forward (right)
-      clicksNeeded = targetBranch - currentBranch;
-      buttonToClick = nextButton;
-      console.log(`Going forward ${clicksNeeded} clicks`);
-    } else if (targetBranch < currentBranch) {
-      // Navigate backward (left)
-      clicksNeeded = currentBranch - targetBranch;
-      buttonToClick = prevButton;
-      console.log(`Going backward ${clicksNeeded} clicks`);
-    } else {
-      console.log('Already on target branch');
-      return true;
-    }
-
-    if (!buttonToClick) {
-      console.error(`No ${targetBranch > currentBranch ? 'next' : 'previous'} button available`);
-      return false;
-    }
-
-    // Check if button is disabled
-    if (buttonToClick.disabled || buttonToClick.getAttribute('aria-disabled') === 'true') {
-      console.error(`Navigation button is disabled, cannot navigate to branch ${targetBranch}`);
-      return false;
-    }
-
-    // Perform the navigation clicks
-    let clickCount = 0;
-    const performClick = () => {
-      if (clickCount >= clicksNeeded) {
-        console.log(`Navigation completed: reached branch ${targetBranch}`);
-        // Refresh the tree after navigation
-        setTimeout(() => {
-          this.extractConversationFromDOM();
-        }, 500); // Give time for DOM to update
-        return true;
-      }
-
-      console.log(`Performing click ${clickCount + 1} of ${clicksNeeded}`);
-      buttonToClick.click();
-      clickCount++;
-
-      // Schedule next click with a small delay to allow DOM updates
-      setTimeout(performClick, 200);
+    // Helper: read the numerical branch indicator inside an article
+    const readBranchIndicator = (articleEl) => {
+      if (!articleEl) return null;
+      const indicatorEl = articleEl.querySelector('[class*="tabular-nums"]');
+      if (!indicatorEl) return null;
+      const match = indicatorEl.textContent.trim().match(/(\d+)\s*\/\s*(\d+)/);
+      if (!match) return null;
+      return {
+        current: parseInt(match[1], 10) - 1, // convert to 0-based index
+        total: parseInt(match[2], 10)
+      };
     };
 
-    // Start the clicking sequence
-    performClick();
+    const pollInterval = 200; // ms
+    let attempts = 0;
+    const maxAttempts = 60; // 12 seconds safeguard
+
+    const step = () => {
+      // ---- debug logging ----
+      console.log(
+        `[nav] attempt #${attempts}`,
+        {
+          targetBranch,
+          articleExists: !!getCurrentArticle(),
+          indicator: readBranchIndicator(getCurrentArticle()),
+        }
+      );
+      attempts++;
+      if (attempts > maxAttempts) {
+        console.warn('Navigation aborted – too many attempts');
+        return;
+      }
+
+      const article = getCurrentArticle();
+      const indicator = readBranchIndicator(article);
+
+      if (indicator && indicator.current === targetBranch) {
+        console.log(`[nav] reached target ${targetBranch}, stopping`);
+        console.log(`Reached target branch ${targetBranch}`);
+        // Give UI a moment to settle, then rebuild the tree
+        setTimeout(() => {
+          this.extractConversationFromDOM();
+          // After DOM extraction, scroll to the user message at the intended depth
+          if (typeof depthToScroll === 'number') {
+            this.scrollToMessage(null, depthToScroll);
+          }
+        }, 300);
+        return;
+      }
+
+      // Decide direction based on latest indicator if available; fallback to original
+      let goForward;
+      if (indicator) {
+        goForward = targetBranch > indicator.current;
+      } else {
+        goForward = targetBranch > currentBranchIndex;
+      }
+
+      const buttonSelector = goForward ? 'button[aria-label="Next response"]' : 'button[aria-label="Previous response"]';
+      const button = article ? article.querySelector(buttonSelector) : null;
+
+      console.log(
+        `[nav] goForward=${goForward}`,
+        {
+          buttonExists: !!button,
+          disabled: button && (button.disabled || button.getAttribute('aria-disabled') === 'true'),
+        }
+      );
+
+      if (button && !button.disabled && button.getAttribute('aria-disabled') !== 'true') {
+        console.log('[nav] clicking arrow');
+        console.log('Clicking navigation arrow');
+        button.click();
+      } else {
+        console.log('[nav] arrow not ready, will retry');
+        console.log('Arrow button not ready or disabled, will retry');
+      }
+
+      // Schedule next poll/click
+      setTimeout(step, pollInterval);
+    };
+
+    // Kick-off the polling loop
+    step();
     return true;
   }
 
@@ -1871,14 +1962,31 @@ class ConversationTreeTracker {
 
     const svg = this.overlay.querySelector('.tree-svg');
     const container = this.overlay.querySelector('.tree-container');
-    svg.innerHTML = '';
+    
+    // Check if ChatGPT is currently streaming to avoid updates during streaming
+    const isStreaming = document.querySelector('[data-streaming="true"]');
+    if (isStreaming) {
+      console.log('Skipping tree render during streaming');
+      return;
+    }
 
+    // Clear existing elements only if we have no nodes
     if (this.conversationTree.nodes.length === 0) {
-      svg.innerHTML = `
-        <text x="50%" y="50%" text-anchor="middle" fill="#888" font-size="14" font-family="system-ui">
-          Start a conversation to see the tree
-        </text>
-      `;
+      // Keep only the defs element if it exists
+      const defs = svg.querySelector('defs');
+      svg.innerHTML = '';
+      if (defs) svg.appendChild(defs);
+      
+      // Add empty state message
+      const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      text.setAttribute('x', '50%');
+      text.setAttribute('y', '50%');
+      text.setAttribute('text-anchor', 'middle');
+      text.setAttribute('fill', '#888');
+      text.setAttribute('font-size', '14');
+      text.setAttribute('font-family', 'system-ui');
+      text.textContent = 'Start a conversation to see the tree';
+      svg.appendChild(text);
       return;
     }
 
@@ -1913,7 +2021,305 @@ class ConversationTreeTracker {
     const startX = (containerWidth - treeWidth) / 2 + horizontalSpacing / 2;
     const startY = 40; // Fixed top padding instead of centering vertically
 
-    // Create gradients and filters for better visuals
+    // Ensure defs exist (create once, reuse)
+    let defs = svg.querySelector('defs');
+    if (!defs) {
+      defs = this.createSVGDefs();
+    svg.appendChild(defs);
+    }
+
+    // Store node positions for connection drawing
+    const nodePositions = new Map();
+    
+    // Track existing and new elements
+    const existingCircles = Array.from(svg.querySelectorAll('circle.tree-node'));
+    const existingTexts = Array.from(svg.querySelectorAll('text:not([x="50%"][y="50%"])')); // Exclude empty state text
+    const existingPaths = Array.from(svg.querySelectorAll('path'));
+    
+    // Create maps to track which elements we've processed
+    const processedCircles = new Set();
+    const processedTexts = new Set();
+    const processedPaths = new Set();
+    
+    // Create a map of node IDs to their visual elements
+    const nodeElements = new Map();
+
+    // Draw nodes and store positions
+    depthGroups.forEach((nodes, depth) => {
+      const y = startY + (depth * verticalSpacing);
+      const nodesAtDepth = nodes.length;
+
+      // Center nodes at this depth
+      const totalWidth = (nodesAtDepth - 1) * horizontalSpacing;
+      const depthStartX = startX + (treeWidth - totalWidth) / 2 - horizontalSpacing / 2;
+
+      nodes.forEach((node, branchIndex) => {
+        const x = depthStartX + (branchIndex * horizontalSpacing);
+        nodePositions.set(node.id, { x, y, depth, branchIndex });
+
+        // Determine if this is a branch point or part of branches
+        const nextDepth = depth + 1;
+        const isBranchPoint = depthGroups.has(nextDepth) && depthGroups.get(nextDepth).length > 1;
+        const isLastBeforeBranch = isBranchPoint && nodesAtDepth === 1;
+        const isPartOfBranches = nodesAtDepth > 1;
+        const isCurrentBranch = node.isCurrentBranch !== false; // Default to true if not specified
+
+        // Color coding:
+        // - Branch point (node before branches): Pink/red gradient
+        // - Current branch: Blue gradient
+        // - Non-current branches: Muted blue/gray
+        let fillColor, strokeColor, opacity = 1;
+
+        if (isBranchPoint && isLastBeforeBranch) {
+          // This is the branch point
+          fillColor = 'url(#branchGradient)';
+          strokeColor = '#f5576c';
+        } else if (isPartOfBranches) {
+          if (isCurrentBranch) {
+            // Current active branch
+            fillColor = 'url(#nodeGradient)';
+            strokeColor = '#4c63d2';
+          } else {
+            // Non-current branch (muted)
+            fillColor = '#94a3b8';
+            strokeColor = '#9ca3af';
+            opacity = 0.4;
+          }
+        } else {
+          // Regular linear node
+          fillColor = 'url(#nodeGradient)';
+          strokeColor = '#4c63d2';
+        }
+
+        // Try to find an existing circle for this node
+        let circle = null;
+        let text = null;
+        
+        // Look for an existing circle at this position
+        const existingCircleIndex = existingCircles.findIndex(c => 
+          !processedCircles.has(c) && 
+          Math.abs(parseFloat(c.getAttribute('cx')) - x) < 5 && 
+          Math.abs(parseFloat(c.getAttribute('cy')) - y) < 5
+        );
+        
+        if (existingCircleIndex !== -1) {
+          // Reuse existing circle
+          circle = existingCircles[existingCircleIndex];
+          processedCircles.add(circle);
+          
+          // Update attributes that might have changed
+          circle.setAttribute('cx', x);
+          circle.setAttribute('cy', y);
+          circle.setAttribute('fill', fillColor);
+          circle.setAttribute('stroke', strokeColor);
+          circle.setAttribute('opacity', opacity);
+          
+          // Remove previous listeners by cloning (listeners do not survive clone)
+          const newCircle = circle.cloneNode(true);
+          circle.replaceWith(newCircle);
+          circle = newCircle;
+          
+          // Attach updated click handler & tooltip for the current node
+          circle.addEventListener('click', () => {
+            console.log(`Clicked node: depth=${depth}, branchIndex=${node.branchIndex}, isCurrentBranch=${node.isCurrentBranch}`);
+
+            if (node.isCurrentBranch === false && node.messageElement && node.branchInfo) {
+              console.log(`Navigating to branch ${node.branchIndex} from current branch ${node.branchInfo.currentBranch}`);
+              this.navigateToBranch(node.messageElement, node.branchIndex, node.branchInfo.currentBranch, depth);
+            } else {
+              this.scrollToMessage(node, depth);
+            }
+          });
+
+          this.addTooltip(circle, node);
+          
+          // Look for matching text
+          const existingTextIndex = existingTexts.findIndex(t => 
+            !processedTexts.has(t) && 
+            Math.abs(parseFloat(t.getAttribute('x')) - x) < 5 && 
+            Math.abs(parseFloat(t.getAttribute('y')) - (y + 6)) < 5
+          );
+          
+          if (existingTextIndex !== -1) {
+            text = existingTexts[existingTextIndex];
+            processedTexts.add(text);
+            
+            // Update text position
+            text.setAttribute('x', x);
+            text.setAttribute('y', y + 6);
+            text.textContent = depth + 1;
+          }
+        }
+        
+        if (!circle) {
+          // Create new circle
+          circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+          circle.setAttribute('cx', x);
+          circle.setAttribute('cy', y);
+          circle.setAttribute('r', nodeRadius);
+        circle.setAttribute('fill', fillColor);
+        circle.setAttribute('stroke', strokeColor);
+        circle.setAttribute('opacity', opacity);
+        circle.setAttribute('stroke-width', '3');
+        circle.setAttribute('filter', 'url(#dropShadow)');
+        circle.classList.add('tree-node');
+        circle.style.cursor = 'pointer';
+
+          // Add click handler for branch navigation and message scrolling
+        circle.addEventListener('click', () => {
+            console.log(`Clicked node: depth=${depth}, branchIndex=${node.branchIndex}, isCurrentBranch=${node.isCurrentBranch}`);
+
+            // If this is a branch placeholder (not current branch), navigate to it
+            if (node.isCurrentBranch === false && node.messageElement && node.branchInfo) {
+              console.log(`Navigating to branch ${node.branchIndex} from current branch ${node.branchInfo.currentBranch}`);
+              this.navigateToBranch(node.messageElement, node.branchIndex, node.branchInfo.currentBranch, depth);
+            } else {
+              // If it's the current branch or a regular node, just scroll to it
+          this.scrollToMessage(node, depth);
+            }
+        });
+
+        // Add tooltip functionality
+        this.addTooltip(circle, node);
+
+        svg.appendChild(circle);
+        }
+
+        if (!text) {
+          // Create new text
+          text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', x);
+        text.setAttribute('y', y + 6);
+        text.setAttribute('text-anchor', 'middle');
+        text.setAttribute('fill', 'white');
+        text.setAttribute('font-size', '14');
+        text.setAttribute('font-weight', '700');
+        text.setAttribute('font-family', 'system-ui, -apple-system, sans-serif');
+        text.textContent = depth + 1;
+        svg.appendChild(text);
+        }
+        
+        // Store elements for this node
+        nodeElements.set(node.id, { circle, text });
+        
+        // Handle animations - only add if they don't exist and element is new
+        if (isBranchPoint && isLastBeforeBranch && !circle.hasAttribute('data-animated')) {
+          // Pulse animation for branch points
+          const animate = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
+          animate.setAttribute('attributeName', 'r');
+          animate.setAttribute('values', `${nodeRadius};${nodeRadius + 3};${nodeRadius}`);
+          animate.setAttribute('dur', '2s');
+          animate.setAttribute('repeatCount', 'indefinite');
+          circle.appendChild(animate);
+          circle.setAttribute('data-animated', 'true');
+        } else if (!isBranchPoint && circle.hasAttribute('data-animated')) {
+          // Remove animation if no longer a branch point
+          const animate = circle.querySelector('animate');
+          if (animate) animate.remove();
+          circle.removeAttribute('data-animated');
+        }
+        
+        // Set filter without brightness
+        circle.setAttribute('filter', 'url(#dropShadow)');
+      });
+    });
+
+    // Draw connections with improved styling
+    depthGroups.forEach((nodes, depth) => {
+      if (depth === 0) return; // Skip root level
+
+      const parentDepth = depth - 1;
+      const parentNodes = (depthGroups.get(parentDepth) || []).filter(p => !p.isPlaceholder);
+
+      nodes.forEach((node) => {
+        const nodePos = nodePositions.get(node.id);
+
+        // Connect to the appropriate parent
+        // For branches, connect to the last single node (branch point)
+        let parentNode = parentNodes[0]; // Default to first parent
+
+        // If there are multiple nodes at current depth (branches) and single parent
+        if (nodes.length > 1 && parentNodes.length === 1) {
+          parentNode = parentNodes[0]; // All branches connect to the single parent
+        }
+
+        if (parentNode) {
+          const parentPos = nodePositions.get(parentNode.id);
+          const midY = (parentPos.y + nodePos.y) / 2;
+
+          // Different curve styles for branches vs linear connections
+          let pathData;
+          if (nodes.length > 1) {
+            // Branch connections - more pronounced curves
+            const controlOffset = Math.abs(nodePos.x - parentPos.x) * 0.3;
+            pathData = `M ${parentPos.x} ${parentPos.y + nodeRadius} 
+                       C ${parentPos.x} ${parentPos.y + nodeRadius + controlOffset},
+                         ${nodePos.x} ${nodePos.y - nodeRadius - controlOffset},
+                         ${nodePos.x} ${nodePos.y - nodeRadius}`;
+          } else {
+            // Linear connections - gentle curves
+            pathData = `M ${parentPos.x} ${parentPos.y + nodeRadius} 
+                       Q ${parentPos.x} ${midY} ${(parentPos.x + nodePos.x) / 2} ${midY}
+                       Q ${nodePos.x} ${midY} ${nodePos.x} ${nodePos.y - nodeRadius}`;
+          }
+
+          // Create a unique key for this connection
+          const connectionKey = `${parentNode.id}-${node.id}`;
+          
+          // Try to find an existing path for this connection
+          let path = null;
+          const existingPathIndex = existingPaths.findIndex(p => 
+            !processedPaths.has(p) && 
+            p.getAttribute('data-connection') === connectionKey
+          );
+          
+          if (existingPathIndex !== -1) {
+            // Reuse existing path
+            path = existingPaths[existingPathIndex];
+            processedPaths.add(path);
+            
+            // Update path data
+          path.setAttribute('d', pathData);
+          } else {
+            // Create new path
+            path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            path.setAttribute('d', pathData);
+            path.setAttribute('data-connection', connectionKey);
+            svg.appendChild(path);
+          }
+          
+          // Update styling
+          path.setAttribute('stroke', nodes.length > 1 ? '#f5576c' : '#8b5cf6');
+          path.setAttribute('stroke-width', nodes.length > 1 ? '2' : '3');
+          path.setAttribute('fill', 'none');
+          path.setAttribute('opacity', '0.8');
+          path.setAttribute('stroke-linecap', 'round');
+        }
+      });
+    });
+    
+    // Remove any unused elements
+    existingCircles.forEach(circle => {
+      if (!processedCircles.has(circle)) {
+        circle.remove();
+      }
+    });
+    
+    existingTexts.forEach(text => {
+      if (!processedTexts.has(text)) {
+        text.remove();
+      }
+    });
+    
+    existingPaths.forEach(path => {
+      if (!processedPaths.has(path)) {
+        path.remove();
+      }
+    });
+  }
+
+  createSVGDefs() {
+    // Create defs element with all gradients and filters
     const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
 
     // Gradient for nodes
@@ -1993,172 +2399,7 @@ class ConversationTreeTracker {
     filter.appendChild(feDropShadow);
     defs.appendChild(filter);
 
-    svg.appendChild(defs);
-
-    // Store node positions for connection drawing
-    const nodePositions = new Map();
-
-    // Draw nodes and store positions
-    depthGroups.forEach((nodes, depth) => {
-      const y = startY + (depth * verticalSpacing);
-      const nodesAtDepth = nodes.length;
-
-      // Center nodes at this depth
-      const totalWidth = (nodesAtDepth - 1) * horizontalSpacing;
-      const depthStartX = startX + (treeWidth - totalWidth) / 2 - horizontalSpacing / 2;
-
-      nodes.forEach((node, branchIndex) => {
-        const x = depthStartX + (branchIndex * horizontalSpacing);
-        nodePositions.set(node.id, { x, y, depth, branchIndex });
-
-        // Determine if this is a branch point or part of branches
-        const nextDepth = depth + 1;
-        const isBranchPoint = depthGroups.has(nextDepth) && depthGroups.get(nextDepth).length > 1;
-        const isLastBeforeBranch = isBranchPoint && nodesAtDepth === 1;
-        const isPartOfBranches = nodesAtDepth > 1;
-        const isCurrentBranch = node.isCurrentBranch !== false; // Default to true if not specified
-
-        console.log(`Node at depth ${depth}, branch ${branchIndex}: isBranchPoint=${isBranchPoint}, isPartOfBranches=${isPartOfBranches}, isCurrentBranch=${isCurrentBranch}`);
-
-        // Draw node circle with enhanced styling
-        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        circle.setAttribute('cx', x);
-        circle.setAttribute('cy', y);
-        circle.setAttribute('r', nodeRadius);
-        // Color coding:
-        // - Branch point (node before branches): Pink/red gradient
-        // - Current branch: Blue gradient
-        // - Non-current branches: Muted blue/gray
-        let fillColor, strokeColor, opacity = 1;
-
-        if (isBranchPoint && isLastBeforeBranch) {
-          // This is the branch point
-          fillColor = 'url(#branchGradient)';
-          strokeColor = '#f5576c';
-        } else if (isPartOfBranches) {
-          if (isCurrentBranch) {
-            // Current active branch
-            fillColor = 'url(#nodeGradient)';
-            strokeColor = '#4c63d2';
-          } else {
-            // Non-current branch (muted)
-            fillColor = '#94a3b8';
-            strokeColor = '#9ca3af';
-            opacity = 0.4;
-          }
-        } else {
-          // Regular linear node
-          fillColor = 'url(#nodeGradient)';
-          strokeColor = '#4c63d2';
-        }
-
-        circle.setAttribute('fill', fillColor);
-        circle.setAttribute('stroke', strokeColor);
-        circle.setAttribute('opacity', opacity);
-        circle.setAttribute('stroke-width', '3');
-        circle.setAttribute('filter', 'url(#dropShadow)');
-        circle.classList.add('tree-node');
-        circle.style.cursor = 'pointer';
-
-        // Add click handler for branch navigation and message scrolling
-        circle.addEventListener('click', () => {
-          console.log(`Clicked node: depth=${depth}, branchIndex=${node.branchIndex}, isCurrentBranch=${node.isCurrentBranch}`);
-
-          // If this is a branch placeholder (not current branch), navigate to it
-          if (node.isCurrentBranch === false && node.messageElement && node.branchInfo) {
-            console.log(`Navigating to branch ${node.branchIndex} from current branch ${node.branchInfo.currentBranch}`);
-            this.navigateToBranch(node.messageElement, node.branchIndex, node.branchInfo.currentBranch);
-          } else {
-            // If it's the current branch or a regular node, just scroll to it
-            this.scrollToMessage(node, depth);
-          }
-        });
-
-        // Add tooltip functionality
-        this.addTooltip(circle, node);
-
-        svg.appendChild(circle);
-
-        // Add node number with better styling
-        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        text.setAttribute('x', x);
-        text.setAttribute('y', y + 6);
-        text.setAttribute('text-anchor', 'middle');
-        text.setAttribute('fill', 'white');
-        text.setAttribute('font-size', '14');
-        text.setAttribute('font-weight', '700');
-        text.setAttribute('font-family', 'system-ui, -apple-system, sans-serif');
-        text.textContent = depth + 1;
-        svg.appendChild(text);
-
-        // Add animations
-        if (isBranchPoint && isLastBeforeBranch) {
-          // Pulse animation for branch points
-          const animate = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
-          animate.setAttribute('attributeName', 'r');
-          animate.setAttribute('values', `${nodeRadius};${nodeRadius + 3};${nodeRadius}`);
-          animate.setAttribute('dur', '2s');
-          animate.setAttribute('repeatCount', 'indefinite');
-          circle.appendChild(animate);
-        } else if (isPartOfBranches && isCurrentBranch) {
-          // Subtle glow for current branch
-          circle.setAttribute('filter', 'url(#dropShadow) brightness(1.1)');
-        }
-      });
-    });
-
-    // Draw connections with improved styling
-    depthGroups.forEach((nodes, depth) => {
-      if (depth === 0) return; // Skip root level
-
-      const parentDepth = depth - 1;
-      const parentNodes = (depthGroups.get(parentDepth) || []).filter(p => !p.isPlaceholder);
-
-      nodes.forEach((node) => {
-        const nodePos = nodePositions.get(node.id);
-
-        // Connect to the appropriate parent
-        // For branches, connect to the last single node (branch point)
-        let parentNode = parentNodes[0]; // Default to first parent
-
-        // If there are multiple nodes at current depth (branches) and single parent
-        if (nodes.length > 1 && parentNodes.length === 1) {
-          parentNode = parentNodes[0]; // All branches connect to the single parent
-        }
-
-        if (parentNode) {
-          const parentPos = nodePositions.get(parentNode.id);
-
-          // Create curved connection
-          const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-          const midY = (parentPos.y + nodePos.y) / 2;
-
-          // Different curve styles for branches vs linear connections
-          let pathData;
-          if (nodes.length > 1) {
-            // Branch connections - more pronounced curves
-            const controlOffset = Math.abs(nodePos.x - parentPos.x) * 0.3;
-            pathData = `M ${parentPos.x} ${parentPos.y + nodeRadius} 
-                       C ${parentPos.x} ${parentPos.y + nodeRadius + controlOffset},
-                         ${nodePos.x} ${nodePos.y - nodeRadius - controlOffset},
-                         ${nodePos.x} ${nodePos.y - nodeRadius}`;
-          } else {
-            // Linear connections - gentle curves
-            pathData = `M ${parentPos.x} ${parentPos.y + nodeRadius} 
-                       Q ${parentPos.x} ${midY} ${(parentPos.x + nodePos.x) / 2} ${midY}
-                       Q ${nodePos.x} ${midY} ${nodePos.x} ${nodePos.y - nodeRadius}`;
-          }
-
-          path.setAttribute('d', pathData);
-          path.setAttribute('stroke', nodes.length > 1 ? '#f5576c' : '#8b5cf6');
-          path.setAttribute('stroke-width', nodes.length > 1 ? '2' : '3');
-          path.setAttribute('fill', 'none');
-          path.setAttribute('opacity', '0.8');
-          path.setAttribute('stroke-linecap', 'round');
-          svg.appendChild(path);
-        }
-      });
-    });
+    return defs;
   }
 }
 

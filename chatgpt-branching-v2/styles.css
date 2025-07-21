@@ -233,6 +233,7 @@
   /* Use only color changes, no transforms to avoid SVG jitter */
   fill: url(#nodeGradientHover) !important;
   stroke: #5a67d8 !important;
+  /* No filter changes on hover to avoid recomputation */
 }
 
 /* Light mode tooltip */

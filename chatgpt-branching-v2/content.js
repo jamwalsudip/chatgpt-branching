@@ -86,8 +86,30 @@ class ConversationTreeTracker {
       </svg>
     `;
 
-    // Apply native ChatGPT button styling
-    this.applyNativeToggleStyle(shareButton);
+    // Apply ChatGPT-inspired button styling
+      Object.assign(this.toggleButton.style, {
+      background: 'transparent',
+      border: 'none',
+      borderRadius: '6px',
+      padding: '8px',
+      cursor: 'pointer',
+      color: 'var(--text-secondary, #6b7280)',
+      transition: 'all 0.15s ease',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    });
+
+    // Add hover effect
+    this.toggleButton.addEventListener('mouseenter', () => {
+      this.toggleButton.style.background = 'var(--main-surface-secondary, #f7f7f8)';
+      this.toggleButton.style.color = 'var(--text-primary, #374151)';
+    });
+
+    this.toggleButton.addEventListener('mouseleave', () => {
+      this.toggleButton.style.background = 'transparent';
+      this.toggleButton.style.color = 'var(--text-secondary, #6b7280)';
+    });
 
     // Load saved state
     const savedState = localStorage.getItem(`tree_toggle_${this.conversationId}`);
@@ -795,8 +817,36 @@ class ConversationTreeTracker {
 
     console.log('Updated toggle button color to:', this.isExtensionVisible ? 'black (#000000)' : 'transparent');
   }
-
-
+  
+  toggleMinimize() {
+    const isMinimized = this.overlay.classList.contains('minimized');
+    const minimizeBtn = this.overlay.querySelector('.minimize-btn');
+    
+    if (isMinimized) {
+      // Expand
+      this.overlay.classList.remove('minimized');
+      minimizeBtn.innerHTML = '−';
+      minimizeBtn.title = 'Minimize';
+      console.log('Extension expanded');
+    } else {
+      // Minimize
+      this.overlay.classList.add('minimized');
+      minimizeBtn.innerHTML = `
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="6" height="6" rx="1"/>
+          <rect x="15" y="3" width="6" height="6" rx="1"/>
+          <rect x="9" y="15" width="6" height="6" rx="1"/>
+          <path d="M6 9v3a3 3 0 0 0 3 3h6a3 3 0 0 0 3-3V9"/>
+          <path d="M12 15V12"/>
+        </svg>
+      `;
+      minimizeBtn.title = 'Expand';
+      console.log('Extension minimized');
+    }
+    
+    // Save state
+    localStorage.setItem('chatgpt_tree_minimized', isMinimized ? 'false' : 'true');
+  }
 
   createOverlay() {
     console.log('Creating overlay...');
@@ -810,15 +860,19 @@ class ConversationTreeTracker {
     this.overlay = document.createElement('div');
     this.overlay.id = 'conversation-tree-overlay';
     this.overlay.innerHTML = `
-      <div class="tree-header" id="tree-drag-handle">
-        <div class="header-left">
-          <h3>Conversation Tree V2 - Sudip Branch</h3>
+      <button class="minimize-btn" title="Minimize/Expand" aria-label="Toggle minimize">−</button>
+      <div class="tree-controls">
+        <button class="refresh-tree-btn" title="Refresh tree" aria-label="Refresh">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+            <path d="M21 3v5h-5"/>
+            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+            <path d="M3 21v-5h5"/>
+          </svg>
+        </button>    
         </div>
-        <div class="header-right">
-          <button class="refresh-tree-btn" title="Refresh tree">↻</button>
-        </div>
-      </div>
-      <div class="tree-container">
+
+        <div class="tree-container" id="tree-drag-handle">
         <svg class="tree-svg" width="100%" height="100%">
           <!-- Tree will be drawn here -->
         </svg>
@@ -839,11 +893,26 @@ class ConversationTreeTracker {
     this.isExtensionVisible = true;
 
     // Add button functionality
-    this.overlay.querySelector('.refresh-tree-btn').addEventListener('click', () => {
+    this.overlay.querySelector('.refresh-tree-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
       console.log('Manual refresh triggered');
       this.extractConversationFromDOM();
     });
 
+    // Add minimize/expand functionality
+    const minimizeBtn = this.overlay.querySelector('.minimize-btn');
+    minimizeBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.toggleMinimize();
+    });
+
+    // Click to expand when minimized
+    this.overlay.addEventListener('click', (e) => {
+      if (this.overlay.classList.contains('minimized') && e.target === this.overlay) {
+        this.toggleMinimize();
+      }
+    });
+    
     // Make the overlay draggable
     this.makeDraggable();
 
@@ -868,6 +937,11 @@ class ConversationTreeTracker {
     // Load saved size and position
     this.loadSavedSize();
 
+    // Load minimized state
+    const isMinimized = localStorage.getItem('chatgpt_tree_minimized') === 'true';
+    if (isMinimized) {
+      setTimeout(() => this.toggleMinimize(), 100);
+    }
     this.renderTree();
   }
 

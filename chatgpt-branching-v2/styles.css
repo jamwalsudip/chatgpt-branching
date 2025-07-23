@@ -9,95 +9,84 @@
   min-height: 10vh !important;
   max-width: 50vw !important;
   max-height: 80vh !important;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.95) 100%) !important;
-  border: 1px solid rgba(148, 163, 184, 0.3) !important;
-  border-radius: 16px !important;
+
+  /* ChatGPT-inspired theming */
+  background: var(--main-surface-primary, #ffffff) !important;
+  border: 1px solid var(--border-light, rgba(0, 0, 0, 0.1)) !important;
+  border-radius: 12px !important;
   box-shadow:
-    0 20px 25px -5px rgba(0, 0, 0, 0.1),
-    0 10px 10px -5px rgba(0, 0, 0, 0.04),
-    0 0 0 1px rgba(255, 255, 255, 0.5) inset !important;
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 1px -1px rgba(0, 0, 0, 0.06) !important;
+  
   backdrop-filter: blur(20px) saturate(180%) !important;
   z-index: 999999 !important;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif !important;
+  font-family: var(--font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif) !important;
   display: flex !important;
   flex-direction: column !important;
   overflow: hidden !important;
   pointer-events: auto !important;
-  transition: none !important;
-  /* Disable transition during resize */
-  /* transform will be set by JavaScript for dragging */
+  transition: opacity 0.2s ease, transform 0.2s ease !important;
   resize: none !important;
-  /* We'll handle resize manually */
 }
 
 /* Minimized state */
 #conversation-tree-overlay.minimized {
-  width: 60px !important;
-  height: 60px !important;
-  min-width: 60px !important;
-  min-height: 60px !important;
-  border-radius: 50% !important;
+  width: 48px !important;
+  height: 48px !important;
+  min-width: 48px !important;
+  min-height: 48px !important;
+  border-radius: 24px !important;
+  background: var(--main-surface-secondary, #f7f7f8) !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+#conversation-tree-overlay.minimized:hover {
+  background: var(--main-surface-tertiary, #ececf1) !important;
+  transform: scale(1.05) !important;
 }
 
 #conversation-tree-overlay.minimized .tree-container {
   display: none !important;
 }
 
-#conversation-tree-overlay.minimized .tree-header {
-  justify-content: center !important;
-  padding: 16px 8px !important;
-  border-radius: 50% !important;
-}
-
-#conversation-tree-overlay.minimized .tree-header h3 {
+#conversation-tree-overlay.minimized .tree-controls {
   display: none !important;
 }
 
-#conversation-tree-overlay.minimized .clear-tree-btn,
-#conversation-tree-overlay.minimized .refresh-tree-btn,
-#conversation-tree-overlay.minimized .header-right {
-  display: none !important;
-}
 
-#conversation-tree-overlay.minimized .header-left {
-  justify-content: center !important;
-}
-
-
-
-.tree-header {
+/* Tree controls - minimal header replacement */
+.tree-controls {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
-  padding: 16px 20px;
-  background: #10a37f;
-  color: white;
-  border-radius: 15px 15px 0 0;
-  position: relative;
-  overflow: hidden;
+  padding: 8px 12px;
+  background: transparent;
+  border-bottom: 1px solid var(--border-light, rgba(0, 0, 0, 0.1));
   user-select: none;
+  gap: 8px;
 }
 
-.tree-header::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, transparent 100%);
-  pointer-events: none;
-}
-
-.header-left {
+.tree-controls button {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary, #6b7280);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: all 0.15s ease;
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: center;
 }
 
-.header-right {
-  display: flex;
-  align-items: center;
+.tree-controls button:hover {
+  background: var(--main-surface-secondary, #f7f7f8);
+  color: var(--text-primary, #374151);
+}
   gap: 8px;
 }
 
@@ -249,18 +238,20 @@
   }
 }
 
-/* Dark mode support */
+/* Dark mode support - ChatGPT theme integration */
+[data-theme="dark"] #conversation-tree-overlay,
 @media (prefers-color-scheme: dark) {
   #conversation-tree-overlay {
-    background: linear-gradient(135deg, rgba(17, 24, 39, 0.95) 0%, rgba(31, 41, 55, 0.95) 100%) !important;
-    border-color: rgba(75, 85, 99, 0.3) !important;
+    background: var(--main-surface-primary, #212121) !important;
+    border-color: var(--border-medium, rgba(255, 255, 255, 0.1)) !important;
+    color: var(--text-primary, #ececf1) !important;
     color: #f9fafb !important;
     box-shadow:
       0 20px 25px -5px rgba(0, 0, 0, 0.4),
       0 10px 10px -5px rgba(0, 0, 0, 0.2),
       0 0 0 1px rgba(255, 255, 255, 0.05) inset !important;
   }
-
+  
   .tree-container {
     background: rgba(0, 0, 0, 0.1) !important;
   }
@@ -274,6 +265,27 @@
       0 2px 8px rgba(0, 0, 0, 0.2),
       0 0 0 1px rgba(255, 255, 255, 0.1) inset !important;
   }
+
+  .tree-controls {
+    border-bottom-color: var(--border-medium, rgba(255, 255, 255, 0.1)) !important;
+  }
+
+  .tree-controls button {
+    color: var(--text-secondary, #9ca3af) !important;
+  }
+
+  .tree-controls button:hover {
+    background: var(--main-surface-secondary, #2d2d30) !important;
+    color: var(--text-primary, #ececf1) !important;
+  }
+
+  #conversation-tree-overlay.minimized {
+    background: var(--main-surface-secondary, #2d2d30) !important;
+  }
+
+  #conversation-tree-overlay.minimized:hover {
+    background: var(--main-surface-tertiary, #404040) !important;
+  }  
 }
 
 /* Responsive adjustments */
@@ -538,4 +550,108 @@ ive ChatGPT Toggle Button */
 .tree-toggle-btn {
   z-index: 1000 !important;
   position: relative !important;
+}
+
+/* ----------------------------------------
+   Core tokens – LIGHT (default)
+-----------------------------------------*/
+:root {
+  /* brand */
+  --ct-accent          : #10a37f;          /* ChatGPT green               */
+  --ct-accent-muted    : color-mix(in srgb, var(--ct-accent) 30%, #fff 70%);
+
+  /* surfaces / content */
+  --ct-bg-primary      : #ffffff;
+  --ct-bg-elevated     : #fafafa;
+  --ct-border          : #e0e0e0;
+  --ct-text-primary    : #202123;
+  --ct-text-secondary  : #4b4e55;
+
+  /* other */
+  --ct-radius          : 8px;
+  --ct-shadow          : 0 4px 14px rgba(0,0,0,.08);
+}
+/* Automatically flips when ChatGPT switches */
+html[data-theme="dark"] {
+  --ct-bg-primary      : #202123;
+  --ct-bg-elevated     : #2a2b32;
+  --ct-border          : #3e3f4b;
+  --ct-text-primary    : #dcdcdc;
+  --ct-text-secondary  : #a1a1aa;
+  --ct-shadow          : 0 4px 14px rgba(0,0,0,.35);
+}
+/* Tree 
+container styling */
+.tree-container {
+  flex: 1;
+  padding: 16px;
+  background: transparent;
+  overflow: hidden;
+  position: relative;
+}
+
+.tree-svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Tree node styling - ChatGPT inspired */
+.tree-svg circle {
+  fill: var(--main-surface-secondary, #f7f7f8);
+  stroke: var(--border-medium, #d1d5db);
+  stroke-width: 2;
+  transition: all 0.2s ease;
+}
+
+.tree-svg circle:hover {
+  fill: var(--main-surface-tertiary, #ececf1);
+  stroke: var(--text-primary, #374151);
+  stroke-width: 2.5;
+}
+
+.tree-svg circle.current {
+  fill: var(--accent-primary, #10a37f);
+  stroke: var(--accent-primary, #10a37f);
+}
+
+.tree-svg line {
+  stroke: var(--border-medium, #d1d5db);
+  stroke-width: 2;
+  opacity: 0.6;
+}
+
+.tree-svg text {
+  fill: var(--text-primary, #374151);
+  font-size: 12px;
+  font-family: var(--font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+/* Minimize/expand button */
+.minimize-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary, #6b7280);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  font-size: 16px;
+  line-height: 1;
+  transition: all 0.15s ease;
+}
+
+.minimize-btn:hover {
+  background: var(--main-surface-secondary, #f7f7f8);
+  color: var(--text-primary, #374151);
+}
+
+/* Minimized state icon */
+#conversation-tree-overlay.minimized .minimize-btn {
+  position: static;
+  font-size: 20px;
+  color: var(--text-secondary, #6b7280);
 }

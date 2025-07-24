@@ -1695,9 +1695,7 @@ class ConversationTreeTracker {
   }
 
   extractConversationFromDOM() {
-    // Skip extraction during drag
-    if (this.isDragging) return;
-    // console.log('=== Extracting conversation from DOM ===');
+    console.log('=== Extracting conversation from DOM ===');
 
     // Find all user messages in the current conversation
     const userMessages = document.querySelectorAll('[data-message-author-role="user"]');
@@ -2046,8 +2044,6 @@ class ConversationTreeTracker {
   }
 
   renderTree() {
-    // Skip render during drag
-    if (this.isDragging) return;
     if (!this.overlay) return;
 
     const svg = this.overlay.querySelector('.tree-svg');
@@ -2225,6 +2221,18 @@ class ConversationTreeTracker {
           this.scrollToMessage(node, depth);
         }
       });
+      
+      // Add proper SVG hover scaling without position shift
+      circle.addEventListener('mouseenter', () => {
+        const currentRadius = parseFloat(circle.getAttribute('r'));
+        circle.style.transition = 'r 0.15s ease-out, stroke-width 0.15s ease-out';
+        circle.setAttribute('r', currentRadius * 1.2);
+      });
+      
+      circle.addEventListener('mouseleave', () => {
+        circle.setAttribute('r', nodeRadius);
+      });
+      
       this.addTooltip(circle, node);
 
       const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');

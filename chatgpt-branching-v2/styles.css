@@ -186,22 +186,17 @@
 /* Enhanced node animations - SVG optimized */
 .tree-node {
   cursor: pointer;
-  transition: fill 0.15s ease-out, stroke 0.15s ease-out;
-  transform-origin: center center;
-}
-
-.tree-node:hover {
-  /* Use only color changes, no transforms to avoid SVG jitter */
-  fill: #4c63d2 !important;
-  stroke: #5a67d8 !important;
-  stroke-width: 2.5 !important;
-  /* No filter changes on hover to avoid recomputation */
+  /* Hover effects are now handled via JavaScript for proper SVG scaling */
 }
 
 /* Light mode tooltip */
 @media (prefers-color-scheme: light) {
   .node-tooltip {
-    background: rgba(255, 255, 255, 0.98);
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.9) 0%,
+      rgba(245, 245, 245, 0.95) 100%
+    ) !important;
     color: #1f2937;
     border: 1px solid rgba(0, 0, 0, 0.08);
     box-shadow:
@@ -240,18 +235,6 @@
 [data-theme="dark"] .tree-svg path.tree-line.current {
   stroke: #f3f3f3 !important;
   opacity: 1 !important;
-}
-
-[data-theme="dark"] .tree-svg circle:hover {
-  fill: #6366f1 !important;
-  stroke: #8b5cf6 !important;
-  stroke-width: 2.5 !important;
-}
-
-[data-theme="dark"] .tree-node:hover {
-  fill: #6366f1 !important;
-  stroke: #8b5cf6 !important;
-  stroke-width: 2.5 !important;
 }
 
 [data-theme="dark"] .tree-svg text.tree-text {
@@ -296,18 +279,6 @@
   .tree-svg path.tree-line.current {
     stroke: #f3f3f3 !important;
     opacity: 1 !important;
-  }
-
-  .tree-svg circle:hover {
-    fill: #6366f1 !important;
-    stroke: #8b5cf6 !important;
-    stroke-width: 2.5 !important;
-  }
-
-  .tree-node:hover {
-    fill: #6366f1 !important;
-    stroke: #8b5cf6 !important;
-    stroke-width: 2.5 !important;
   }
 
   .tree-svg text.tree-text {
@@ -530,7 +501,6 @@
 /* Node tooltip styles */
 .node-tooltip {
   position: absolute;
-  background: rgba(255, 255, 255, 0.95);
   color: #1f2937;
   padding: 10px 10px;
   border-radius: 15px;
@@ -561,6 +531,17 @@
   opacity: 0;
   transform: translateY(-4px);
   animation: tooltipFadeIn 0.25s ease-out forwards;
+}
+
+/* Dark-theme tooltip (works even when OS theme is light) */
+html[data-theme="dark"] .node-tooltip,
+[data-theme="dark"] .node-tooltip {
+  background: linear-gradient(135deg,
+    rgba(0, 0, 0, 0.90) 0%,
+    rgba(30, 30, 30, 0.95) 100%
+  ) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
 }
 
 @keyframes tooltipFadeIn {
@@ -739,12 +720,6 @@ container styling */
   stroke-width: 2;
   opacity: 0.6;
   transition: all 0.2s ease;
-}
-
-.tree-svg circle:hover {
-  fill: #4c63d2 !important;
-  stroke: #5a67d8 !important;
-  stroke-width: 2.5 !important;
 }
 
 .tree-svg circle.current {

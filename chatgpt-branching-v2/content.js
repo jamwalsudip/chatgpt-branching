@@ -842,6 +842,9 @@ class ConversationTreeTracker {
     // Show extension by default
     this.overlay.style.display = 'flex';
     this.isExtensionVisible = true;
+    // Promote overlay to its own layer for smooth transforms
+    this.overlay.style.willChange = 'transform';
+    this.overlay.style.transform = 'translateZ(0)';
 
     // Make the overlay draggable
     this.makeDraggable();
@@ -875,7 +878,13 @@ class ConversationTreeTracker {
     }
 
     let isDragging = false;
+    // Global flag to block tree/DOM updates during drag
+    this.isDragging = false;
     let initialX, initialY;
+    
+    // Cached values to avoid repeated DOM queries during drag
+    let cachedViewportWidth, cachedViewportHeight, cachedOverlayWidth, cachedOverlayHeight;
+    let cachedMinX, cachedMaxX, cachedMinY, cachedMaxY; // Pre-calculated boundaries
 
     const getTransform = () => {
       const style = window.getComputedStyle(this.overlay);
@@ -904,40 +913,78 @@ class ConversationTreeTracker {
     }
     this.overlay.style.transform = `translate3d(${startX}px, ${startY}px, 0)`;
 
+
     const dragStart = (e) => {
       isDragging = true;
+      this.isDragging = true;
+      // Cancel any pending DOM update or streaming end timers
+      clearTimeout(this.updateTimeout);
+      clearTimeout(this.streamingEndTimeout);
+      
+      // Temporarily disable observers during drag to prevent interference
+      this.pauseObservers();
+      
       const currentPos = getTransform();
       initialX = e.clientX - currentPos.x;
       initialY = e.clientY - currentPos.y;
 
+      // Cache dimensions and pre-calculate boundaries once
+      const rect = this.overlay.getBoundingClientRect();
+      cachedViewportWidth = document.documentElement.clientWidth;
+      cachedViewportHeight = document.documentElement.clientHeight;
+      cachedOverlayWidth = rect.width;
+      cachedOverlayHeight = rect.height;
+      
+      // Pre-calculate all boundary values to avoid Math.max/min during drag
+      const padding = 50;
+      cachedMinX = padding;
+      cachedMinY = padding;
+      cachedMaxX = cachedViewportWidth - cachedOverlayWidth - padding;
+      cachedMaxY = cachedViewportHeight - cachedOverlayHeight - padding;
+
       this.overlay.style.transition = 'none';
       header.style.cursor = 'grabbing';
+      
+      // Add high-performance styles during drag
+      this.overlay.style.willChange = 'transform';
+      this.overlay.style.pointerEvents = 'none'; // Prevent hover effects during drag
+      
       e.preventDefault();
     };
 
     const drag = (e) => {
       if (!isDragging) return;
 
-      let currentX = e.clientX - initialX;
-      let currentY = e.clientY - initialY;
+      // Direct calculation and immediate update for responsive dragging
+      const newX = e.clientX - initialX;
+      const newY = e.clientY - initialY;
 
-      const rect = this.overlay.getBoundingClientRect();
-      const padding = 50;
-      const viewportWidth = document.documentElement.clientWidth;
-      const viewportHeight = document.documentElement.clientHeight;
-
-      // Enforce boundaries
-      currentX = Math.max(padding, Math.min(currentX, viewportWidth - rect.width - padding));
-      currentY = Math.max(padding, Math.min(currentY, viewportHeight - rect.height - padding));
-
-      this.overlay.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
+      // Apply boundary constraints directly
+      const constrainedX = newX < cachedMinX ? cachedMinX : 
+                          newX > cachedMaxX ? cachedMaxX : newX;
+      const constrainedY = newY < cachedMinY ? cachedMinY : 
+                          newY > cachedMaxY ? cachedMaxY : newY;
+      
+      // Immediate DOM update without requestAnimationFrame
+      this.overlay.style.transform = `translate3d(${constrainedX}px, ${constrainedY}px, 0)`;
     };
 
     const dragEnd = () => {
       if (!isDragging) return;
       isDragging = false;
+      this.isDragging = false;
+      // After drag, trigger final DOM extraction (lighter than full render with logs)
+      setTimeout(() => this.extractConversationFromDOM(), 0);
+      
+      // Re-enable observers
+      this.resumeObservers();
+      
       header.style.cursor = 'grab';
       this.overlay.style.transition = '';
+      
+      // Remove high-performance styles
+      this.overlay.style.willChange = 'auto';
+      this.overlay.style.pointerEvents = 'auto';
 
       const finalPos = getTransform();
       localStorage.setItem(`chatgpt_tree_position_${this.conversationId}`, JSON.stringify({ x: finalPos.x, y: finalPos.y }));
@@ -947,6 +994,15 @@ class ConversationTreeTracker {
     document.addEventListener('mousemove', drag);
     document.addEventListener('mouseup', dragEnd);
     header.style.cursor = 'grab';
+  }
+
+  // Helper methods to pause/resume observers during drag for better performance
+  pauseObservers() {
+    this.observerPaused = true;
+  }
+
+  resumeObservers() {
+    this.observerPaused = false;
   }
 
   makeResizable() {
@@ -1490,6 +1546,11 @@ class ConversationTreeTracker {
   observeConversation() {
     // Watch for DOM changes to detect new messages and branch changes
     const observer = new MutationObserver((mutations) => {
+      // Skip processing entirely if observers are paused or dragging
+      if (this.observerPaused || this.isDragging) {
+        return;
+      }
+
       // Skip processing entirely if streaming
       const isStreaming = document.querySelector('[data-streaming="true"]');
       if (isStreaming) {
@@ -1634,7 +1695,9 @@ class ConversationTreeTracker {
   }
 
   extractConversationFromDOM() {
-    console.log('=== Extracting conversation from DOM ===');
+    // Skip extraction during drag
+    if (this.isDragging) return;
+    // console.log('=== Extracting conversation from DOM ===');
 
     // Find all user messages in the current conversation
     const userMessages = document.querySelectorAll('[data-message-author-role="user"]');
@@ -1983,6 +2046,8 @@ class ConversationTreeTracker {
   }
 
   renderTree() {
+    // Skip render during drag
+    if (this.isDragging) return;
     if (!this.overlay) return;
 
     const svg = this.overlay.querySelector('.tree-svg');

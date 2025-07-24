@@ -100,16 +100,7 @@ class ConversationTreeTracker {
       justifyContent: 'center'
     });
 
-    // Add hover effect
-    this.toggleButton.addEventListener('mouseenter', () => {
-      this.toggleButton.style.background = 'var(--main-surface-secondary, #f7f7f8)';
-      this.toggleButton.style.color = 'var(--text-primary, #374151)';
-    });
-
-    this.toggleButton.addEventListener('mouseleave', () => {
-      this.toggleButton.style.background = 'transparent';
-      this.toggleButton.style.color = 'var(--text-secondary, #6b7280)';
-    });
+    // Hover effects are now handled by CSS
 
     // Load saved state
     const savedState = localStorage.getItem(`tree_toggle_${this.conversationId}`);
@@ -205,8 +196,6 @@ class ConversationTreeTracker {
         margin: '0 4px',
         border: 'none',
         borderRadius: computedStyle.borderRadius || '8px',
-        backgroundColor: this.isVisible ? '#000000' : 'transparent',
-        color: this.isVisible ? '#ffffff' : '#000000',
         cursor: 'pointer',
         fontSize: computedStyle.fontSize || '14px',
         fontWeight: computedStyle.fontWeight || '500',
@@ -227,8 +216,6 @@ class ConversationTreeTracker {
         margin: '0 4px',
         border: 'none',
         borderRadius: '8px',
-        backgroundColor: this.isVisible ? '#000000' : 'transparent',
-        color: this.isVisible ? '#ffffff' : '#000000',
         cursor: 'pointer',
         fontSize: '14px',
         fontWeight: '500',
@@ -240,27 +227,23 @@ class ConversationTreeTracker {
       });
     }
 
-    // Add hover effects
-    this.toggleButton.addEventListener('mouseenter', () => {
-      this.toggleButton.style.opacity = '0.8';
-      this.toggleButton.style.transform = 'scale(1.05)';
-    });
-
-    this.toggleButton.addEventListener('mouseleave', () => {
-      this.toggleButton.style.opacity = '1';
-      this.toggleButton.style.transform = 'scale(1)';
-    });
+    // Hover effects are now handled by CSS
   }
 
   updateToggleState() {
     console.log('Updating toggle state. isVisible:', this.isVisible);
 
     if (this.toggleButton) {
-      // Update button color and icon tint
-      this.toggleButton.style.backgroundColor = this.isVisible ? '#000000' : 'transparent';
-      this.toggleButton.style.color = this.isVisible ? '#ffffff' : '#000000';
+      // Use CSS classes for styling instead of inline styles
+      if (this.isVisible) {
+        this.toggleButton.classList.remove('inactive');
+        this.toggleButton.classList.add('active');
+      } else {
+        this.toggleButton.classList.remove('active');
+        this.toggleButton.classList.add('inactive');
+      }
       this.toggleButton.setAttribute('title', this.isVisible ? 'Hide Conversation Tree' : 'Show Conversation Tree');
-      console.log('Button color updated to:', this.isVisible ? 'black (#000000)' : 'transparent');
+      console.log('Button state updated to:', this.isVisible ? 'active' : 'inactive');
     }
 
     // Ensure overlay exists and is in DOM before updating
@@ -470,9 +453,14 @@ class ConversationTreeTracker {
 
   updateToggleButtonColor() {
     if (this.toggleButton) {
-      // ON = black with white icon, OFF = transparent with black icon
-      this.toggleButton.style.backgroundColor = this.isExtensionVisible ? '#000000' : 'transparent';
-      this.toggleButton.style.color = this.isExtensionVisible ? '#ffffff' : '#000000';
+      // Use CSS classes for styling instead of inline styles
+      if (this.isExtensionVisible) {
+        this.toggleButton.classList.remove('inactive');
+        this.toggleButton.classList.add('active');
+      } else {
+        this.toggleButton.classList.remove('active');
+        this.toggleButton.classList.add('inactive');
+      }
       this.toggleButton.setAttribute('title', this.isExtensionVisible ? 'Hide Conversation Tree' : 'Show Conversation Tree');
     }
   }
@@ -670,8 +658,12 @@ class ConversationTreeTracker {
         outline: 'none'
       });
 
-      // Set background color with !important to ensure it's not overridden
-      this.toggleButton.style.setProperty('background-color', this.isExtensionVisible ? '#000000' : 'transparent', 'important');
+      // Use CSS classes for state-based styling
+      if (this.isExtensionVisible) {
+        this.toggleButton.classList.add('active');
+      } else {
+        this.toggleButton.classList.add('inactive');
+      }
     } else {
       // Fallback styling if no reference button found
       Object.assign(this.toggleButton.style, {
@@ -692,20 +684,15 @@ class ConversationTreeTracker {
         outline: 'none'
       });
 
-      // Set background color with !important to ensure it's not overridden
-      this.toggleButton.style.setProperty('background-color', this.isExtensionVisible ? '#000000' : 'transparent', 'important');
+      // Use CSS classes for state-based styling
+      if (this.isExtensionVisible) {
+        this.toggleButton.classList.add('active');
+      } else {
+        this.toggleButton.classList.add('inactive');
+      }
     }
 
-    // Add hover effects
-    this.toggleButton.addEventListener('mouseenter', () => {
-      this.toggleButton.style.opacity = '0.8';
-      this.toggleButton.style.transform = 'scale(1.05)';
-    });
-
-    this.toggleButton.addEventListener('mouseleave', () => {
-      this.toggleButton.style.opacity = '1';
-      this.toggleButton.style.transform = 'scale(1)';
-    });
+    // Hover effects are now handled by CSS
   }
 
   observeShareButton() {
@@ -771,10 +758,15 @@ class ConversationTreeTracker {
     this.isExtensionVisible = !this.isExtensionVisible;
     this.saveToggleState();
 
-    // Update button color
+    // Update button using CSS classes
     if (this.toggleButton) {
-      this.toggleButton.style.background = this.isExtensionVisible ? '#000000' : 'transparent';
-      this.toggleButton.style.color = this.isExtensionVisible ? '#ffffff' : '#000000';
+      if (this.isExtensionVisible) {
+        this.toggleButton.classList.remove('inactive');
+        this.toggleButton.classList.add('active');
+      } else {
+        this.toggleButton.classList.remove('active');
+        this.toggleButton.classList.add('inactive');
+      }
     }
 
     // Show/hide extension
@@ -850,6 +842,9 @@ class ConversationTreeTracker {
     // Show extension by default
     this.overlay.style.display = 'flex';
     this.isExtensionVisible = true;
+    // Promote overlay to its own layer for smooth transforms
+    this.overlay.style.willChange = 'transform';
+    this.overlay.style.transform = 'translateZ(0)';
 
     // Make the overlay draggable
     this.makeDraggable();
@@ -883,7 +878,13 @@ class ConversationTreeTracker {
     }
 
     let isDragging = false;
+    // Global flag to block tree/DOM updates during drag
+    this.isDragging = false;
     let initialX, initialY;
+    
+    // Cached values to avoid repeated DOM queries during drag
+    let cachedViewportWidth, cachedViewportHeight, cachedOverlayWidth, cachedOverlayHeight;
+    let cachedMinX, cachedMaxX, cachedMinY, cachedMaxY; // Pre-calculated boundaries
 
     const getTransform = () => {
       const style = window.getComputedStyle(this.overlay);
@@ -912,40 +913,78 @@ class ConversationTreeTracker {
     }
     this.overlay.style.transform = `translate3d(${startX}px, ${startY}px, 0)`;
 
+
     const dragStart = (e) => {
       isDragging = true;
+      this.isDragging = true;
+      // Cancel any pending DOM update or streaming end timers
+      clearTimeout(this.updateTimeout);
+      clearTimeout(this.streamingEndTimeout);
+      
+      // Temporarily disable observers during drag to prevent interference
+      this.pauseObservers();
+      
       const currentPos = getTransform();
       initialX = e.clientX - currentPos.x;
       initialY = e.clientY - currentPos.y;
 
+      // Cache dimensions and pre-calculate boundaries once
+      const rect = this.overlay.getBoundingClientRect();
+      cachedViewportWidth = document.documentElement.clientWidth;
+      cachedViewportHeight = document.documentElement.clientHeight;
+      cachedOverlayWidth = rect.width;
+      cachedOverlayHeight = rect.height;
+      
+      // Pre-calculate all boundary values to avoid Math.max/min during drag
+      const padding = 50;
+      cachedMinX = padding;
+      cachedMinY = padding;
+      cachedMaxX = cachedViewportWidth - cachedOverlayWidth - padding;
+      cachedMaxY = cachedViewportHeight - cachedOverlayHeight - padding;
+
       this.overlay.style.transition = 'none';
       header.style.cursor = 'grabbing';
+      
+      // Add high-performance styles during drag
+      this.overlay.style.willChange = 'transform';
+      this.overlay.style.pointerEvents = 'none'; // Prevent hover effects during drag
+      
       e.preventDefault();
     };
 
     const drag = (e) => {
       if (!isDragging) return;
 
-      let currentX = e.clientX - initialX;
-      let currentY = e.clientY - initialY;
+      // Direct calculation and immediate update for responsive dragging
+      const newX = e.clientX - initialX;
+      const newY = e.clientY - initialY;
 
-      const rect = this.overlay.getBoundingClientRect();
-      const padding = 50;
-      const viewportWidth = document.documentElement.clientWidth;
-      const viewportHeight = document.documentElement.clientHeight;
-
-      // Enforce boundaries
-      currentX = Math.max(padding, Math.min(currentX, viewportWidth - rect.width - padding));
-      currentY = Math.max(padding, Math.min(currentY, viewportHeight - rect.height - padding));
-
-      this.overlay.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
+      // Apply boundary constraints directly
+      const constrainedX = newX < cachedMinX ? cachedMinX : 
+                          newX > cachedMaxX ? cachedMaxX : newX;
+      const constrainedY = newY < cachedMinY ? cachedMinY : 
+                          newY > cachedMaxY ? cachedMaxY : newY;
+      
+      // Immediate DOM update without requestAnimationFrame
+      this.overlay.style.transform = `translate3d(${constrainedX}px, ${constrainedY}px, 0)`;
     };
 
     const dragEnd = () => {
       if (!isDragging) return;
       isDragging = false;
+      this.isDragging = false;
+      // After drag, trigger final DOM extraction (lighter than full render with logs)
+      setTimeout(() => this.extractConversationFromDOM(), 0);
+      
+      // Re-enable observers
+      this.resumeObservers();
+      
       header.style.cursor = 'grab';
       this.overlay.style.transition = '';
+      
+      // Remove high-performance styles
+      this.overlay.style.willChange = 'auto';
+      this.overlay.style.pointerEvents = 'auto';
 
       const finalPos = getTransform();
       localStorage.setItem(`chatgpt_tree_position_${this.conversationId}`, JSON.stringify({ x: finalPos.x, y: finalPos.y }));
@@ -955,6 +994,15 @@ class ConversationTreeTracker {
     document.addEventListener('mousemove', drag);
     document.addEventListener('mouseup', dragEnd);
     header.style.cursor = 'grab';
+  }
+
+  // Helper methods to pause/resume observers during drag for better performance
+  pauseObservers() {
+    this.observerPaused = true;
+  }
+
+  resumeObservers() {
+    this.observerPaused = false;
   }
 
   makeResizable() {
@@ -1184,10 +1232,10 @@ class ConversationTreeTracker {
     const treeContainer = this.overlay.querySelector('.tree-container');
     if (treeContainer) {
       // Let flexbox handle the height naturally, just set max-height for scrolling
-      const newMaxHeight = overlayHeight;
-      treeContainer.style.maxHeight = `${newMaxHeight}px`;
-      treeContainer.style.height = '100%';
-      console.log(`Updated tree container max-height to: ${newMaxHeight}px (overlay: ${overlayHeight})`);
+      const containerHeight = overlayHeight;
+      treeContainer.style.maxHeight = `${containerHeight}px`;
+      treeContainer.style.height = `${containerHeight}px`;
+      console.log(`Updated tree container max-height to: ${containerHeight}px (overlay: ${overlayHeight})`);
     }
   }
 
@@ -1498,6 +1546,11 @@ class ConversationTreeTracker {
   observeConversation() {
     // Watch for DOM changes to detect new messages and branch changes
     const observer = new MutationObserver((mutations) => {
+      // Skip processing entirely if observers are paused or dragging
+      if (this.observerPaused || this.isDragging) {
+        return;
+      }
+
       // Skip processing entirely if streaming
       const isStreaming = document.querySelector('[data-streaming="true"]');
       if (isStreaming) {
@@ -1642,7 +1695,9 @@ class ConversationTreeTracker {
   }
 
   extractConversationFromDOM() {
-    console.log('=== Extracting conversation from DOM ===');
+    // Skip extraction during drag
+    if (this.isDragging) return;
+    // console.log('=== Extracting conversation from DOM ===');
 
     // Find all user messages in the current conversation
     const userMessages = document.querySelectorAll('[data-message-author-role="user"]');
@@ -1991,6 +2046,8 @@ class ConversationTreeTracker {
   }
 
   renderTree() {
+    // Skip render during drag
+    if (this.isDragging) return;
     if (!this.overlay) return;
 
     const svg = this.overlay.querySelector('.tree-svg');
@@ -2023,7 +2080,7 @@ class ConversationTreeTracker {
       text.setAttribute('y', '50%');
       text.setAttribute('text-anchor', 'middle');
       text.setAttribute('fill', '#888');
-      text.setAttribute('font-size', '14');
+      text.setAttribute('font-size', '18');
       text.setAttribute('font-family', 'system-ui');
       text.textContent = 'Start a conversation to see the tree';
       svg.appendChild(text);
@@ -2031,7 +2088,7 @@ class ConversationTreeTracker {
     }
 
     // Enhanced styling constants
-    const nodeRadius = 18;
+    const nodeRadius = 22;
     const verticalSpacing = 70;
     const horizontalSpacing = 50;
     const containerWidth = container.offsetWidth || 300;
@@ -2050,9 +2107,21 @@ class ConversationTreeTracker {
     const maxDepth = Math.max(...Array.from(depthGroups.keys()));
     const treeHeight = (maxDepth + 1) * verticalSpacing + 80; // Add padding
 
+    // Calculate required width based on tree structure
+    const maxNodesAtDepth = Math.max(...Array.from(depthGroups.values()).map(nodes => nodes.length));
+    const requiredWidth = Math.max(
+      maxNodesAtDepth * horizontalSpacing + 100, // Based on max nodes at any depth
+      600 // Minimum width
+    );
+
+    // Use fixed dimensions that are calculated from tree structure
+    const FIXED_TREE_WIDTH = requiredWidth;
+    const FIXED_TREE_HEIGHT = Math.max(treeHeight, 200);
+
     // Set SVG height to accommodate all content
-    svg.setAttribute('height', Math.max(treeHeight, 200));
-    svg.setAttribute('viewBox', `0 0 ${containerWidth} ${Math.max(treeHeight, 200)}`);
+    svg.setAttribute('width', FIXED_TREE_WIDTH);
+    svg.setAttribute('height', FIXED_TREE_HEIGHT);
+    svg.setAttribute('viewBox', `0 0 ${FIXED_TREE_WIDTH} ${FIXED_TREE_HEIGHT}`);
 
     // Start position - we'll anchor everything relative to container center
     const startY = 40; // Fixed top padding
@@ -2087,7 +2156,7 @@ class ConversationTreeTracker {
 
     // Position root nodes (depth 0) evenly across the width
     const roots = depthGroups.get(0) || [];
-    const rootCenterX = containerWidth / 2;
+    const rootCenterX = FIXED_TREE_WIDTH / 2;
     const y0 = startY;
     const count0 = roots.length;
     roots.forEach((node, idx) => {
@@ -2104,7 +2173,7 @@ class ConversationTreeTracker {
         const siblings = parentMap.get(node.parentId) || [];
         const idx = siblings.findIndex(sib => sib.id === node.id);
         const count = siblings.length;
-        const parentPos = nodePositions.get(node.parentId) || { x: containerWidth / 2, y: startY + (depth - 1) * verticalSpacing };
+        const parentPos = nodePositions.get(node.parentId) || { x: FIXED_TREE_WIDTH / 2, y: startY + (depth - 1) * verticalSpacing };
         const offset = (idx - (count - 1) / 2) * horizontalSpacing;
         const x = parentPos.x + offset;
         nodePositions.set(node.id, { x, y, depth, branchIndex: idx });
@@ -2118,43 +2187,34 @@ class ConversationTreeTracker {
     this.conversationTree.nodes.forEach(node => {
       const { x, y } = nodePositions.get(node.id);
       const depth = node.depth;
-      const nodesAtDepth = depthGroups.get(depth)?.length || 1;
 
-      // Determine color scheme
-      const nextDepth = depth + 1;
-      const isBranchPoint = depthGroups.has(nextDepth) && depthGroups.get(nextDepth).length > 1;
-      const isLastBeforeBranch = isBranchPoint && nodesAtDepth === 1;
-      const isPartOfBranches = nodesAtDepth > 1;
+      // Determine if this is the current branch
       const isCurrentBranch = node.isCurrentBranch !== false;
-
-      let fillColor, strokeColor, opacity = 1;
-      if (isBranchPoint && isLastBeforeBranch) {
-        fillColor = 'url(#branchGradient)';
-        strokeColor = '#f5576c';
-      } else if (isPartOfBranches) {
-        if (isCurrentBranch) {
-          fillColor = 'url(#nodeGradient)';
-          strokeColor = '#4c63d2';
-        } else {
-          fillColor = '#94a3b8';
-          strokeColor = '#9ca3af';
-          opacity = 0.4;
-        }
-      } else {
-        fillColor = 'url(#nodeGradient)';
-        strokeColor = '#4c63d2';
-      }
 
       const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
       circle.setAttribute('cx', x);
       circle.setAttribute('cy', y);
       circle.setAttribute('r', nodeRadius);
-      circle.setAttribute('fill', fillColor);
-      circle.setAttribute('stroke', strokeColor);
-      circle.setAttribute('opacity', opacity);
-      circle.setAttribute('stroke-width', '3');
+      circle.setAttribute('stroke-width', '2');
       circle.setAttribute('filter', 'url(#dropShadow)');
+      
+      // Set initial fill and stroke attributes for CSS hover to work
+      // CSS will override these based on theme and state
+      if (isCurrentBranch) {
+        circle.setAttribute('fill', '#212121');
+        circle.setAttribute('stroke', '#212121');
+      } else {
+        circle.setAttribute('fill', '#808080');
+        circle.setAttribute('stroke', '#808080');
+      }
+      
       circle.classList.add('tree-node');
+      
+      // Add 'current' class for active branches to use CSS styling
+      if (isCurrentBranch) {
+        circle.classList.add('current');
+      }
+      
       circle.style.cursor = 'pointer';
       svg.appendChild(circle);
 
@@ -2169,13 +2229,21 @@ class ConversationTreeTracker {
 
       const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       text.setAttribute('x', x);
-      text.setAttribute('y', y + 6);
+      text.setAttribute('y', y);
+      text.setAttribute('dominant-baseline', 'middle');
       text.setAttribute('text-anchor', 'middle');
-      text.setAttribute('fill', 'white');
-      text.setAttribute('font-size', '14');
+      text.setAttribute('font-size', '22');
       text.setAttribute('font-weight', '700');
       text.setAttribute('font-family', 'system-ui, -apple-system, sans-serif');
+      text.classList.add('tree-text');
+      
+      // Add 'current' class for active branch text styling
+      if (isCurrentBranch) {
+        text.classList.add('current');
+      }
+      
       text.textContent = depth + 1;
+      text.style.pointerEvents = 'none';
       svg.appendChild(text);
 
       nodeElements.set(node.id, { circle, text });
@@ -2205,13 +2273,21 @@ class ConversationTreeTracker {
                     Q ${nodePos.x} ${midY} ${nodePos.x} ${nodePos.y - nodeRadius}`;
       }
 
+      // Determine if this branch connection is part of the current active path
+      const isCurrentBranch = node.isCurrentBranch !== false;
+      
       const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
       path.setAttribute('d', pathData.trim());
-      path.setAttribute('stroke', siblings.length > 1 ? '#f5576c' : '#8b5cf6');
-      path.setAttribute('stroke-width', siblings.length > 1 ? '2' : '3');
+      path.setAttribute('stroke-width', '2');
       path.setAttribute('fill', 'none');
-      path.setAttribute('opacity', '0.8');
       path.setAttribute('stroke-linecap', 'round');
+      path.classList.add('tree-line');
+      
+      // Add class for active branch styling
+      if (isCurrentBranch) {
+        path.classList.add('current');
+      }
+      
       svg.appendChild(path);
     });
   }

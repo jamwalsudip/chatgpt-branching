@@ -5,8 +5,8 @@
   /* Default size – JS can override these. Remove !important so inline styles win when resizing. */
   width: 25vw;
   height: 25vh;
-  min-width: 10vw !important;
-  min-height: 10vh !important;
+  min-width: 200px !important;
+  min-height: 150px !important;
   max-width: 50vw !important;
   max-height: 80vh !important;
 
@@ -25,7 +25,7 @@
   flex-direction: column !important;
   overflow: hidden !important;
   pointer-events: auto !important;
-  transition: opacity 0.2s ease, transform 0.2s ease !important;
+  transition: opacity 0.2s ease;
   resize: none !important;
 }
 
@@ -169,8 +169,8 @@
 }
 
 .tree-svg {
-  width: 100%;
-  height: auto;
+  /* width: auto !important;  -- removed to let SVG attribute size win */
+  /* height: auto !important; -- removed to let SVG attribute size win */
   min-height: 150px;
   border-radius: 8px;
   display: block;
@@ -192,8 +192,9 @@
 
 .tree-node:hover {
   /* Use only color changes, no transforms to avoid SVG jitter */
-  fill: url(#nodeGradientHover) !important;
+  fill: #4c63d2 !important;
   stroke: #5a67d8 !important;
+  stroke-width: 2.5 !important;
   /* No filter changes on hover to avoid recomputation */
 }
 
@@ -222,6 +223,47 @@
     0 0 0 1px rgba(255, 255, 255, 0.05) inset !important;
 }
 
+[data-theme="dark"] .tree-svg circle {
+  opacity: 0.6;
+}
+
+[data-theme="dark"] .tree-svg circle.current {
+  fill: #f3f3f3 !important;
+  stroke: #f3f3f3 !important;
+  opacity: 1 !important;
+}
+
+[data-theme="dark"] .tree-svg path.tree-line {
+  opacity: 0.6;
+}
+
+[data-theme="dark"] .tree-svg path.tree-line.current {
+  stroke: #f3f3f3 !important;
+  opacity: 1 !important;
+}
+
+[data-theme="dark"] .tree-svg circle:hover {
+  fill: #6366f1 !important;
+  stroke: #8b5cf6 !important;
+  stroke-width: 2.5 !important;
+}
+
+[data-theme="dark"] .tree-node:hover {
+  fill: #6366f1 !important;
+  stroke: #8b5cf6 !important;
+  stroke-width: 2.5 !important;
+}
+
+[data-theme="dark"] .tree-svg text.tree-text {
+  opacity: 0.6;
+}
+
+/* Active branch text in dark mode - dark text on light circle */
+[data-theme="dark"] .tree-svg text.tree-text.current {
+  fill: #212121 !important;
+  opacity: 1 !important;
+}
+
 @media (prefers-color-scheme: dark) {
   #conversation-tree-overlay {
     background: var(--main-surface-primary, #212121) !important;
@@ -235,6 +277,47 @@
   
   .tree-container {
     background: rgba(0, 0, 0, 0.1) !important;
+  }
+
+  .tree-svg circle {
+    opacity: 0.6;
+  }
+
+  .tree-svg circle.current {
+    fill: #f3f3f3 !important;
+    stroke: #f3f3f3 !important;
+    opacity: 1 !important;
+  }
+
+  .tree-svg path.tree-line {
+    opacity: 0.6;
+  }
+
+  .tree-svg path.tree-line.current {
+    stroke: #f3f3f3 !important;
+    opacity: 1 !important;
+  }
+
+  .tree-svg circle:hover {
+    fill: #6366f1 !important;
+    stroke: #8b5cf6 !important;
+    stroke-width: 2.5 !important;
+  }
+
+  .tree-node:hover {
+    fill: #6366f1 !important;
+    stroke: #8b5cf6 !important;
+    stroke-width: 2.5 !important;
+  }
+
+  .tree-svg text.tree-text {
+    opacity: 0.6;
+  }
+
+  /* Active branch text in dark mode - dark text on light circle */
+  .tree-svg text.tree-text.current {
+    fill: #212121 !important;
+    opacity: 1 !important;
   }
 
   .node-tooltip {
@@ -491,12 +574,90 @@
     transform: translateY(0);
   }
 }
-/* Nat
-ive ChatGPT Toggle Button */
+/* Native ChatGPT Toggle Button */
 .tree-toggle-btn {
   /* Base styles will be applied via JavaScript to match ChatGPT's native buttons */
   font-family: inherit !important;
   box-sizing: border-box !important;
+}
+
+/* Toggle button state styling - Light Mode */
+#simple-tree-toggle {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 6px !important;
+  padding: 8px !important;
+  cursor: pointer !important;
+  color: #212121 !important;
+  transition: all 0.15s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Toggle button ON state - Light Mode */
+#simple-tree-toggle.active {
+  background-color: #212121 !important;
+  color: #f3f3f3 !important;
+  opacity: 1 !important;
+}
+
+/* Toggle button OFF state - Light Mode */
+#simple-tree-toggle.inactive {
+  background: transparent !important;
+  color: #212121 !important;
+  opacity: 0.5 !important;
+}
+
+/* Toggle button hover - Light Mode */
+#simple-tree-toggle:hover {
+  background-color: #212121 !important;
+  color: #f3f3f3 !important;
+}
+
+/* Dark Mode Toggle Button Styling */
+[data-theme="dark"] #simple-tree-toggle {
+  color: #f3f3f3 !important;
+}
+
+[data-theme="dark"] #simple-tree-toggle.active {
+  background-color: #f3f3f3 !important;
+  color: #212121 !important;
+  opacity: 1 !important;
+}
+
+[data-theme="dark"] #simple-tree-toggle.inactive {
+  background: transparent !important;
+  color: #f3f3f3 !important;
+  opacity: 0.5 !important;
+}
+
+[data-theme="dark"] #simple-tree-toggle:hover {
+  background-color: #383838 !important;
+  color: #f3f3f3 !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  #simple-tree-toggle {
+    color: #f3f3f3 !important;
+  }
+
+  #simple-tree-toggle.active {
+    background-color: #f3f3f3 !important;
+    color: #212121 !important;
+    opacity: 1 !important;
+  }
+
+  #simple-tree-toggle.inactive {
+    background: transparent !important;
+    color: #f3f3f3 !important;
+    opacity: 0.5 !important;
+  }
+
+  #simple-tree-toggle:hover {
+    background-color: #383838 !important;
+    color: #f3f3f3 !important;
+  }
 }
 
 .tree-toggle-btn svg {
@@ -573,35 +734,65 @@ container styling */
 
 /* Tree node styling - ChatGPT inspired */
 .tree-svg circle {
-  fill: var(--main-surface-secondary, #f7f7f8);
-  stroke: var(--border-medium, #d1d5db);
+  fill: #808080;
+  stroke: #808080;
   stroke-width: 2;
+  opacity: 0.6;
   transition: all 0.2s ease;
 }
 
 .tree-svg circle:hover {
-  fill: var(--main-surface-tertiary, #ececf1);
-  stroke: var(--text-primary, #374151);
-  stroke-width: 2.5;
+  fill: #4c63d2 !important;
+  stroke: #5a67d8 !important;
+  stroke-width: 2.5 !important;
 }
 
 .tree-svg circle.current {
-  fill: var(--accent-primary, #10a37f);
-  stroke: var(--accent-primary, #10a37f);
+  fill: #212121;
+  stroke: #212121;
+  opacity: 1;
 }
 
 .tree-svg line {
-  stroke: var(--border-medium, #d1d5db);
+  stroke: #808080;
   stroke-width: 2;
   opacity: 0.6;
 }
 
+.tree-svg path.tree-line {
+  stroke: #808080;
+  stroke-width: 2;
+  opacity: 0.6;
+}
+
+.tree-svg path.tree-line.current {
+  stroke: #212121;
+  opacity: 1;
+}
+
 .tree-svg text {
   fill: var(--text-primary, #374151);
-  font-size: 12px;
+  font-size: 16px;
   font-family: var(--font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
   text-anchor: middle;
   dominant-baseline: central;
+}
+
+/* Tree text styling */
+.tree-svg text.tree-text {
+  fill: #f3f3f3;
+  font-size: 22px;
+  font-weight: 700;
+  font-family: system-ui, -apple-system, sans-serif;
+  text-anchor: middle;
+  dominant-baseline: middle;
+  opacity: 0.6;
+}
+
+/* Active branch text in light mode - off-white text on dark circle */
+.tree-svg text.tree-text.current {
+  fill: #f3f3f3;
+  opacity: 1;
 }
 
 /* Minimize/expand button */

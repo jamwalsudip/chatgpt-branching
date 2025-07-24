@@ -86,8 +86,30 @@ class ConversationTreeTracker {
       </svg>
     `;
 
-    // Apply native ChatGPT button styling
-    this.applyNativeToggleStyle(shareButton);
+    // Apply ChatGPT-inspired button styling
+      Object.assign(this.toggleButton.style, {
+      background: 'transparent',
+      border: 'none',
+      borderRadius: '6px',
+      padding: '8px',
+      cursor: 'pointer',
+      color: 'var(--text-secondary, #6b7280)',
+      transition: 'all 0.15s ease',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    });
+
+    // Add hover effect
+    this.toggleButton.addEventListener('mouseenter', () => {
+      this.toggleButton.style.background = 'var(--main-surface-secondary, #f7f7f8)';
+      this.toggleButton.style.color = 'var(--text-primary, #374151)';
+    });
+
+    this.toggleButton.addEventListener('mouseleave', () => {
+      this.toggleButton.style.background = 'transparent';
+      this.toggleButton.style.color = 'var(--text-secondary, #6b7280)';
+    });
 
     // Load saved state
     const savedState = localStorage.getItem(`tree_toggle_${this.conversationId}`);
@@ -796,8 +818,6 @@ class ConversationTreeTracker {
     console.log('Updated toggle button color to:', this.isExtensionVisible ? 'black (#000000)' : 'transparent');
   }
 
-
-
   createOverlay() {
     console.log('Creating overlay...');
 
@@ -810,14 +830,7 @@ class ConversationTreeTracker {
     this.overlay = document.createElement('div');
     this.overlay.id = 'conversation-tree-overlay';
     this.overlay.innerHTML = `
-      <div class="tree-header" id="tree-drag-handle">
-        <div class="header-left">
-          <h3>Conversation Tree V2 - Sudip Branch</h3>
-        </div>
-        <div class="header-right">
-          <button class="refresh-tree-btn" title="Refresh tree">↻</button>
-        </div>
-      </div>
+      <button class="minimize-btn" title="Drag handle" aria-label="Drag handle">☰</button>
       <div class="tree-container">
         <svg class="tree-svg" width="100%" height="100%">
           <!-- Tree will be drawn here -->
@@ -838,12 +851,6 @@ class ConversationTreeTracker {
     this.overlay.style.display = 'flex';
     this.isExtensionVisible = true;
 
-    // Add button functionality
-    this.overlay.querySelector('.refresh-tree-btn').addEventListener('click', () => {
-      console.log('Manual refresh triggered');
-      this.extractConversationFromDOM();
-    });
-
     // Make the overlay draggable
     this.makeDraggable();
 
@@ -852,11 +859,6 @@ class ConversationTreeTracker {
 
     // Set a default position and size to prevent it from being off-screen
     Object.assign(this.overlay.style, {
-
-      /* Use left/top = 0; makeDraggable() immediately
-         translates the panel so it starts 50 px from the
-         screen edges.  Keeping 'right' here caused the
-         translation and the fixed right offset to add up. */
       top: '0px',
       left: '0px',
       width: '25vw',
@@ -874,7 +876,7 @@ class ConversationTreeTracker {
 
 
   makeDraggable() {
-    const header = this.overlay.querySelector('#tree-drag-handle');
+    const header = this.overlay.querySelector('.minimize-btn');
     if (!header) {
       console.error('Drag handle not found!');
       return;
@@ -910,10 +912,7 @@ class ConversationTreeTracker {
     }
     this.overlay.style.transform = `translate3d(${startX}px, ${startY}px, 0)`;
 
-
     const dragStart = (e) => {
-      if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
-
       isDragging = true;
       const currentPos = getTransform();
       initialX = e.clientX - currentPos.x;
@@ -1182,14 +1181,13 @@ class ConversationTreeTracker {
   }
 
   updateTreeContainerHeight(overlayHeight) {
-    const headerHeight = this.overlay.querySelector('.tree-header')?.offsetHeight || 60;
     const treeContainer = this.overlay.querySelector('.tree-container');
     if (treeContainer) {
       // Let flexbox handle the height naturally, just set max-height for scrolling
-      const newMaxHeight = overlayHeight - headerHeight;
+      const newMaxHeight = overlayHeight;
       treeContainer.style.maxHeight = `${newMaxHeight}px`;
       treeContainer.style.height = '100%';
-      console.log(`Updated tree container max-height to: ${newMaxHeight}px (overlay: ${overlayHeight}, header: ${headerHeight})`);
+      console.log(`Updated tree container max-height to: ${newMaxHeight}px (overlay: ${overlayHeight})`);
     }
   }
 
@@ -1523,9 +1521,7 @@ class ConversationTreeTracker {
                 try {
                   if (node.querySelector && (
                     node.querySelector('[data-message-author-role="user"]') ||
-                    node.querySelector('[class*="tabular-nums"]') || // Branch indicators
-                    node.querySelector('button[aria-label*="Previous response"]') ||
-                    node.querySelector('button[aria-label*="Next response"]')
+                    node.querySelector('[class*="tabular-nums"]') // Branch indicators
                   )) {
                     shouldUpdate = true;
                   }
@@ -1719,6 +1715,43 @@ class ConversationTreeTracker {
           return a.depth - b.depth; // Sort by depth first
         }
         return a.branchIndex - b.branchIndex; // Then by branch index for left-to-right ordering
+      });
+
+      // Build parent-child relationships
+      const nodeMap = new Map();
+      nodes.forEach(node => nodeMap.set(node.id, node));
+      
+      console.log('=== DEBUG: Node structure before parent assignment ===');
+      nodes.forEach(node => {
+        console.log(`Node ${node.id}: depth=${node.depth}, branchIndex=${node.branchIndex}, isCurrentBranch=${node.isCurrentBranch}`);
+      });
+      
+      // Set parentId for each node based on depth and branching
+      nodes.forEach(node => {
+        if (node.depth === 0) {
+          node.parentId = null; // Root has no parent
+        } else {
+          // Find the correct parent based on branching structure
+          const nodesAtPrevDepth = nodes.filter(n => n.depth === node.depth - 1);
+          if (nodesAtPrevDepth.length > 0) {
+            // Assign parent based on current branch context
+            // If this node is part of the current branch, find the current branch parent
+            // If not, assign to the first available parent (fallback)
+            let parentNode;
+            if (node.isCurrentBranch) {
+              // Find the current branch parent at previous depth
+              parentNode = nodesAtPrevDepth.find(n => n.isCurrentBranch);
+            }
+            if (!parentNode) {
+              // Fallback: assign to first parent at previous depth
+              parentNode = nodesAtPrevDepth[0];
+            }
+            node.parentId = parentNode.id;
+            console.log(`Assigned ${node.id} to parent ${parentNode.id} (isCurrentBranch=${node.isCurrentBranch})`);
+          } else {
+            node.parentId = null; // Fallback
+          }
+        }
       });
 
       this.conversationTree.nodes = nodes;
@@ -1963,6 +1996,13 @@ class ConversationTreeTracker {
     const svg = this.overlay.querySelector('.tree-svg');
     const container = this.overlay.querySelector('.tree-container');
     
+    // --- Cleanup: always start with a fresh SVG (keep <defs> only) ---
+    {
+      const defsEl = svg.querySelector('defs');
+      svg.innerHTML = '';
+      if (defsEl) svg.appendChild(defsEl);
+    }
+
     // Check if ChatGPT is currently streaming to avoid updates during streaming
     const isStreaming = document.querySelector('[data-streaming="true"]');
     if (isStreaming) {
@@ -2006,20 +2046,16 @@ class ConversationTreeTracker {
       depthGroups.get(node.depth).push(node);
     });
 
-    // Calculate total tree dimensions for centering
+    // Calculate tree height for SVG sizing
     const maxDepth = Math.max(...Array.from(depthGroups.keys()));
-    const maxBranchWidth = Math.max(...Array.from(depthGroups.values()).map(nodes => nodes.length));
-
     const treeHeight = (maxDepth + 1) * verticalSpacing + 80; // Add padding
-    const treeWidth = maxBranchWidth * horizontalSpacing;
 
     // Set SVG height to accommodate all content
     svg.setAttribute('height', Math.max(treeHeight, 200));
     svg.setAttribute('viewBox', `0 0 ${containerWidth} ${Math.max(treeHeight, 200)}`);
 
-    // Center the tree horizontally, start from top with padding
-    const startX = (containerWidth - treeWidth) / 2 + horizontalSpacing / 2;
-    const startY = 40; // Fixed top padding instead of centering vertically
+    // Start position - we'll anchor everything relative to container center
+    const startY = 40; // Fixed top padding
 
     // Ensure defs exist (create once, reuse)
     let defs = svg.querySelector('defs');
@@ -2031,290 +2067,152 @@ class ConversationTreeTracker {
     // Store node positions for connection drawing
     const nodePositions = new Map();
     
-    // Track existing and new elements
-    const existingCircles = Array.from(svg.querySelectorAll('circle.tree-node'));
-    const existingTexts = Array.from(svg.querySelectorAll('text:not([x="50%"][y="50%"])')); // Exclude empty state text
-    const existingPaths = Array.from(svg.querySelectorAll('path'));
-    
-    // Create maps to track which elements we've processed
-    const processedCircles = new Set();
-    const processedTexts = new Set();
-    const processedPaths = new Set();
-    
     // Create a map of node IDs to their visual elements
     const nodeElements = new Map();
 
-    // Draw nodes and store positions
+    // Draw nodes and store positions with parent-centric layout
+    // Build map of parentId -> children nodes
+    const parentMap = new Map();
+    console.log('=== DEBUG: Node data ===');
+    this.conversationTree.nodes.forEach(n => {
+      console.log(`Node ${n.id}: parentId=${n.parentId}, depth=${n.depth}`);
+      const pid = n.parentId;
+      if (!parentMap.has(pid)) parentMap.set(pid, []);
+      parentMap.get(pid).push(n);
+    });
+    console.log('=== ParentMap ===');
+    parentMap.forEach((children, parentId) => {
+      console.log(`Parent ${parentId}: ${children.length} children`);
+    });
+
+    // Position root nodes (depth 0) evenly across the width
+    const roots = depthGroups.get(0) || [];
+    const rootCenterX = containerWidth / 2;
+    const y0 = startY;
+    const count0 = roots.length;
+    roots.forEach((node, idx) => {
+      const x0 = rootCenterX + (idx - (count0 - 1) / 2) * horizontalSpacing;
+      nodePositions.set(node.id, { x: x0, y: y0, depth: 0, branchIndex: idx });
+      console.log(`Root node ${node.id}: x=${x0}, y=${y0}, centerX=${rootCenterX}`);
+    });
+
+    // Position other nodes based on their parent position
     depthGroups.forEach((nodes, depth) => {
-      const y = startY + (depth * verticalSpacing);
-      const nodesAtDepth = nodes.length;
+      if (depth === 0) return; // already positioned roots
+      const y = startY + depth * verticalSpacing;
+      nodes.forEach(node => {
+        const siblings = parentMap.get(node.parentId) || [];
+        const idx = siblings.findIndex(sib => sib.id === node.id);
+        const count = siblings.length;
+        const parentPos = nodePositions.get(node.parentId) || { x: containerWidth / 2, y: startY + (depth - 1) * verticalSpacing };
+        const offset = (idx - (count - 1) / 2) * horizontalSpacing;
+        const x = parentPos.x + offset;
+        nodePositions.set(node.id, { x, y, depth, branchIndex: idx });
+        
+        // Debug logging
+        console.log(`Node ${node.id} (depth ${depth}): parent=${node.parentId}, siblings=${count}, idx=${idx}, x=${x}, y=${y}`);
+      });
+    });
 
-      // Center nodes at this depth
-      const totalWidth = (nodesAtDepth - 1) * horizontalSpacing;
-      const depthStartX = startX + (treeWidth - totalWidth) / 2 - horizontalSpacing / 2;
+    // ---- Draw fresh circles/text for each node ----
+    this.conversationTree.nodes.forEach(node => {
+      const { x, y } = nodePositions.get(node.id);
+      const depth = node.depth;
+      const nodesAtDepth = depthGroups.get(depth)?.length || 1;
 
-      nodes.forEach((node, branchIndex) => {
-        const x = depthStartX + (branchIndex * horizontalSpacing);
-        nodePositions.set(node.id, { x, y, depth, branchIndex });
+      // Determine color scheme
+      const nextDepth = depth + 1;
+      const isBranchPoint = depthGroups.has(nextDepth) && depthGroups.get(nextDepth).length > 1;
+      const isLastBeforeBranch = isBranchPoint && nodesAtDepth === 1;
+      const isPartOfBranches = nodesAtDepth > 1;
+      const isCurrentBranch = node.isCurrentBranch !== false;
 
-        // Determine if this is a branch point or part of branches
-        const nextDepth = depth + 1;
-        const isBranchPoint = depthGroups.has(nextDepth) && depthGroups.get(nextDepth).length > 1;
-        const isLastBeforeBranch = isBranchPoint && nodesAtDepth === 1;
-        const isPartOfBranches = nodesAtDepth > 1;
-        const isCurrentBranch = node.isCurrentBranch !== false; // Default to true if not specified
-
-        // Color coding:
-        // - Branch point (node before branches): Pink/red gradient
-        // - Current branch: Blue gradient
-        // - Non-current branches: Muted blue/gray
-        let fillColor, strokeColor, opacity = 1;
-
-        if (isBranchPoint && isLastBeforeBranch) {
-          // This is the branch point
-          fillColor = 'url(#branchGradient)';
-          strokeColor = '#f5576c';
-        } else if (isPartOfBranches) {
-          if (isCurrentBranch) {
-            // Current active branch
-            fillColor = 'url(#nodeGradient)';
-            strokeColor = '#4c63d2';
-          } else {
-            // Non-current branch (muted)
-            fillColor = '#94a3b8';
-            strokeColor = '#9ca3af';
-            opacity = 0.4;
-          }
-        } else {
-          // Regular linear node
+      let fillColor, strokeColor, opacity = 1;
+      if (isBranchPoint && isLastBeforeBranch) {
+        fillColor = 'url(#branchGradient)';
+        strokeColor = '#f5576c';
+      } else if (isPartOfBranches) {
+        if (isCurrentBranch) {
           fillColor = 'url(#nodeGradient)';
           strokeColor = '#4c63d2';
+        } else {
+          fillColor = '#94a3b8';
+          strokeColor = '#9ca3af';
+          opacity = 0.4;
         }
+      } else {
+        fillColor = 'url(#nodeGradient)';
+        strokeColor = '#4c63d2';
+      }
 
-        // Try to find an existing circle for this node
-        let circle = null;
-        let text = null;
-        
-        // Look for an existing circle at this position
-        const existingCircleIndex = existingCircles.findIndex(c => 
-          !processedCircles.has(c) && 
-          Math.abs(parseFloat(c.getAttribute('cx')) - x) < 5 && 
-          Math.abs(parseFloat(c.getAttribute('cy')) - y) < 5
-        );
-        
-        if (existingCircleIndex !== -1) {
-          // Reuse existing circle
-          circle = existingCircles[existingCircleIndex];
-          processedCircles.add(circle);
-          
-          // Update attributes that might have changed
-          circle.setAttribute('cx', x);
-          circle.setAttribute('cy', y);
-          circle.setAttribute('fill', fillColor);
-          circle.setAttribute('stroke', strokeColor);
-          circle.setAttribute('opacity', opacity);
-          
-          // Remove previous listeners by cloning (listeners do not survive clone)
-          const newCircle = circle.cloneNode(true);
-          circle.replaceWith(newCircle);
-          circle = newCircle;
-          
-          // Attach updated click handler & tooltip for the current node
-          circle.addEventListener('click', () => {
-            console.log(`Clicked node: depth=${depth}, branchIndex=${node.branchIndex}, isCurrentBranch=${node.isCurrentBranch}`);
+      const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      circle.setAttribute('cx', x);
+      circle.setAttribute('cy', y);
+      circle.setAttribute('r', nodeRadius);
+      circle.setAttribute('fill', fillColor);
+      circle.setAttribute('stroke', strokeColor);
+      circle.setAttribute('opacity', opacity);
+      circle.setAttribute('stroke-width', '3');
+      circle.setAttribute('filter', 'url(#dropShadow)');
+      circle.classList.add('tree-node');
+      circle.style.cursor = 'pointer';
+      svg.appendChild(circle);
 
-            if (node.isCurrentBranch === false && node.messageElement && node.branchInfo) {
-              console.log(`Navigating to branch ${node.branchIndex} from current branch ${node.branchInfo.currentBranch}`);
-              this.navigateToBranch(node.messageElement, node.branchIndex, node.branchInfo.currentBranch, depth);
-            } else {
-              this.scrollToMessage(node, depth);
-            }
-          });
-
-          this.addTooltip(circle, node);
-          
-          // Look for matching text
-          const existingTextIndex = existingTexts.findIndex(t => 
-            !processedTexts.has(t) && 
-            Math.abs(parseFloat(t.getAttribute('x')) - x) < 5 && 
-            Math.abs(parseFloat(t.getAttribute('y')) - (y + 6)) < 5
-          );
-          
-          if (existingTextIndex !== -1) {
-            text = existingTexts[existingTextIndex];
-            processedTexts.add(text);
-            
-            // Update text position
-            text.setAttribute('x', x);
-            text.setAttribute('y', y + 6);
-            text.textContent = depth + 1;
-          }
-        }
-        
-        if (!circle) {
-          // Create new circle
-          circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-          circle.setAttribute('cx', x);
-          circle.setAttribute('cy', y);
-          circle.setAttribute('r', nodeRadius);
-        circle.setAttribute('fill', fillColor);
-        circle.setAttribute('stroke', strokeColor);
-        circle.setAttribute('opacity', opacity);
-        circle.setAttribute('stroke-width', '3');
-        circle.setAttribute('filter', 'url(#dropShadow)');
-        circle.classList.add('tree-node');
-        circle.style.cursor = 'pointer';
-
-          // Add click handler for branch navigation and message scrolling
-        circle.addEventListener('click', () => {
-            console.log(`Clicked node: depth=${depth}, branchIndex=${node.branchIndex}, isCurrentBranch=${node.isCurrentBranch}`);
-
-            // If this is a branch placeholder (not current branch), navigate to it
-            if (node.isCurrentBranch === false && node.messageElement && node.branchInfo) {
-              console.log(`Navigating to branch ${node.branchIndex} from current branch ${node.branchInfo.currentBranch}`);
-              this.navigateToBranch(node.messageElement, node.branchIndex, node.branchInfo.currentBranch, depth);
-            } else {
-              // If it's the current branch or a regular node, just scroll to it
+      circle.addEventListener('click', () => {
+        if (node.isCurrentBranch === false && node.messageElement && node.branchInfo) {
+          this.navigateToBranch(node.messageElement, node.branchIndex, node.branchInfo.currentBranch, depth);
+        } else {
           this.scrollToMessage(node, depth);
-            }
-        });
-
-        // Add tooltip functionality
-        this.addTooltip(circle, node);
-
-        svg.appendChild(circle);
-        }
-
-        if (!text) {
-          // Create new text
-          text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        text.setAttribute('x', x);
-        text.setAttribute('y', y + 6);
-        text.setAttribute('text-anchor', 'middle');
-        text.setAttribute('fill', 'white');
-        text.setAttribute('font-size', '14');
-        text.setAttribute('font-weight', '700');
-        text.setAttribute('font-family', 'system-ui, -apple-system, sans-serif');
-        text.textContent = depth + 1;
-        svg.appendChild(text);
-        }
-        
-        // Store elements for this node
-        nodeElements.set(node.id, { circle, text });
-        
-        // Handle animations - only add if they don't exist and element is new
-        if (isBranchPoint && isLastBeforeBranch && !circle.hasAttribute('data-animated')) {
-          // Pulse animation for branch points
-          const animate = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
-          animate.setAttribute('attributeName', 'r');
-          animate.setAttribute('values', `${nodeRadius};${nodeRadius + 3};${nodeRadius}`);
-          animate.setAttribute('dur', '2s');
-          animate.setAttribute('repeatCount', 'indefinite');
-          circle.appendChild(animate);
-          circle.setAttribute('data-animated', 'true');
-        } else if (!isBranchPoint && circle.hasAttribute('data-animated')) {
-          // Remove animation if no longer a branch point
-          const animate = circle.querySelector('animate');
-          if (animate) animate.remove();
-          circle.removeAttribute('data-animated');
-        }
-        
-        // Set filter without brightness
-        circle.setAttribute('filter', 'url(#dropShadow)');
-      });
-    });
-
-    // Draw connections with improved styling
-    depthGroups.forEach((nodes, depth) => {
-      if (depth === 0) return; // Skip root level
-
-      const parentDepth = depth - 1;
-      const parentNodes = (depthGroups.get(parentDepth) || []).filter(p => !p.isPlaceholder);
-
-      nodes.forEach((node) => {
-        const nodePos = nodePositions.get(node.id);
-
-        // Connect to the appropriate parent
-        // For branches, connect to the last single node (branch point)
-        let parentNode = parentNodes[0]; // Default to first parent
-
-        // If there are multiple nodes at current depth (branches) and single parent
-        if (nodes.length > 1 && parentNodes.length === 1) {
-          parentNode = parentNodes[0]; // All branches connect to the single parent
-        }
-
-        if (parentNode) {
-          const parentPos = nodePositions.get(parentNode.id);
-          const midY = (parentPos.y + nodePos.y) / 2;
-
-          // Different curve styles for branches vs linear connections
-          let pathData;
-          if (nodes.length > 1) {
-            // Branch connections - more pronounced curves
-            const controlOffset = Math.abs(nodePos.x - parentPos.x) * 0.3;
-            pathData = `M ${parentPos.x} ${parentPos.y + nodeRadius} 
-                       C ${parentPos.x} ${parentPos.y + nodeRadius + controlOffset},
-                         ${nodePos.x} ${nodePos.y - nodeRadius - controlOffset},
-                         ${nodePos.x} ${nodePos.y - nodeRadius}`;
-          } else {
-            // Linear connections - gentle curves
-            pathData = `M ${parentPos.x} ${parentPos.y + nodeRadius} 
-                       Q ${parentPos.x} ${midY} ${(parentPos.x + nodePos.x) / 2} ${midY}
-                       Q ${nodePos.x} ${midY} ${nodePos.x} ${nodePos.y - nodeRadius}`;
-          }
-
-          // Create a unique key for this connection
-          const connectionKey = `${parentNode.id}-${node.id}`;
-          
-          // Try to find an existing path for this connection
-          let path = null;
-          const existingPathIndex = existingPaths.findIndex(p => 
-            !processedPaths.has(p) && 
-            p.getAttribute('data-connection') === connectionKey
-          );
-          
-          if (existingPathIndex !== -1) {
-            // Reuse existing path
-            path = existingPaths[existingPathIndex];
-            processedPaths.add(path);
-            
-            // Update path data
-          path.setAttribute('d', pathData);
-          } else {
-            // Create new path
-            path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            path.setAttribute('d', pathData);
-            path.setAttribute('data-connection', connectionKey);
-            svg.appendChild(path);
-          }
-          
-          // Update styling
-          path.setAttribute('stroke', nodes.length > 1 ? '#f5576c' : '#8b5cf6');
-          path.setAttribute('stroke-width', nodes.length > 1 ? '2' : '3');
-          path.setAttribute('fill', 'none');
-          path.setAttribute('opacity', '0.8');
-          path.setAttribute('stroke-linecap', 'round');
         }
       });
+      this.addTooltip(circle, node);
+
+      const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      text.setAttribute('x', x);
+      text.setAttribute('y', y + 6);
+      text.setAttribute('text-anchor', 'middle');
+      text.setAttribute('fill', 'white');
+      text.setAttribute('font-size', '14');
+      text.setAttribute('font-weight', '700');
+      text.setAttribute('font-family', 'system-ui, -apple-system, sans-serif');
+      text.textContent = depth + 1;
+      svg.appendChild(text);
+
+      nodeElements.set(node.id, { circle, text });
     });
-    
-    // Remove any unused elements
-    existingCircles.forEach(circle => {
-      if (!processedCircles.has(circle)) {
-        circle.remove();
+
+    // Build connections based on actual parent relationships
+    this.conversationTree.nodes.forEach(node => {
+      if (!node.parentId) return; // root has no parent
+      const parentPos = nodePositions.get(node.parentId);
+      const nodePos   = nodePositions.get(node.id);
+      if (!parentPos || !nodePos) return;
+
+      const siblings = parentMap.get(node.parentId) || [];
+
+      // Path geometry: branched vs single child
+      let pathData;
+      if (siblings.length > 1) {
+        const controlOffset = Math.abs(nodePos.x - parentPos.x) * 0.3;
+        pathData = `M ${parentPos.x} ${parentPos.y + nodeRadius}
+                    C ${parentPos.x} ${parentPos.y + nodeRadius + controlOffset},
+                      ${nodePos.x} ${nodePos.y - nodeRadius - controlOffset},
+                      ${nodePos.x} ${nodePos.y - nodeRadius}`;
+      } else {
+        const midY = (parentPos.y + nodePos.y) / 2;
+        pathData = `M ${parentPos.x} ${parentPos.y + nodeRadius}
+                    Q ${parentPos.x} ${midY} ${(parentPos.x + nodePos.x) / 2} ${midY}
+                    Q ${nodePos.x} ${midY} ${nodePos.x} ${nodePos.y - nodeRadius}`;
       }
-    });
-    
-    existingTexts.forEach(text => {
-      if (!processedTexts.has(text)) {
-        text.remove();
-      }
-    });
-    
-    existingPaths.forEach(path => {
-      if (!processedPaths.has(path)) {
-        path.remove();
-      }
+
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', pathData.trim());
+      path.setAttribute('stroke', siblings.length > 1 ? '#f5576c' : '#8b5cf6');
+      path.setAttribute('stroke-width', siblings.length > 1 ? '2' : '3');
+      path.setAttribute('fill', 'none');
+      path.setAttribute('opacity', '0.8');
+      path.setAttribute('stroke-linecap', 'round');
+      svg.appendChild(path);
     });
   }
 

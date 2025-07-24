@@ -13,10 +13,10 @@
   /* ChatGPT-inspired theming */
   background: var(--main-surface-primary, #ffffff) !important;
   border: 1px solid var(--border-light, rgba(0, 0, 0, 0.1)) !important;
-  border-radius: 12px !important;
+  border-radius: 20px !important;
   box-shadow:
-    0 4px 6px -1px rgba(0, 0, 0, 0.1),
-    0 2px 1px -1px rgba(0, 0, 0, 0.06) !important;
+    0 20px 15px -5px rgba(0, 0, 0, 0.1),
+    0 10px 8px -5px rgba(0, 0, 0, 0.06) !important;
   
   backdrop-filter: blur(20px) saturate(180%) !important;
   z-index: 999999 !important;
@@ -27,33 +27,6 @@
   pointer-events: auto !important;
   transition: opacity 0.2s ease, transform 0.2s ease !important;
   resize: none !important;
-}
-
-/* Minimized state */
-#conversation-tree-overlay.minimized {
-  width: 48px !important;
-  height: 48px !important;
-  min-width: 48px !important;
-  min-height: 48px !important;
-  border-radius: 24px !important;
-  background: var(--main-surface-secondary, #f7f7f8) !important;
-  cursor: pointer !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-}
-
-#conversation-tree-overlay.minimized:hover {
-  background: var(--main-surface-tertiary, #ececf1) !important;
-  transform: scale(1.05) !important;
-}
-
-#conversation-tree-overlay.minimized .tree-container {
-  display: none !important;
-}
-
-#conversation-tree-overlay.minimized .tree-controls {
-  display: none !important;
 }
 
 
@@ -87,8 +60,7 @@
   background: var(--main-surface-secondary, #f7f7f8);
   color: var(--text-primary, #374151);
 }
-  gap: 8px;
-}
+
 
 .minimize-btn {
   background: rgba(255, 255, 255, 0.1);
@@ -239,12 +211,21 @@
 }
 
 /* Dark mode support - ChatGPT theme integration */
-[data-theme="dark"] #conversation-tree-overlay,
+[data-theme="dark"] #conversation-tree-overlay{
+  /* dark mode styles */
+  background: var(--main-surface-primary, #212121) !important;
+  border-color: var(--border-medium, rgba(255, 255, 255, 0.1)) !important;
+  color: var(--text-primary, #ececf1) !important;
+  box-shadow:
+    0 20px 25px -5px rgba(0, 0, 0, 0.4),
+    0 10px 10px -5px rgba(0, 0, 0, 0.2),
+    0 0 0 1px rgba(255, 255, 255, 0.05) inset !important;
+}
+
 @media (prefers-color-scheme: dark) {
   #conversation-tree-overlay {
     background: var(--main-surface-primary, #212121) !important;
     border-color: var(--border-medium, rgba(255, 255, 255, 0.1)) !important;
-    color: var(--text-primary, #ececf1) !important;
     color: #f9fafb !important;
     box-shadow:
       0 20px 25px -5px rgba(0, 0, 0, 0.4),
@@ -463,11 +444,6 @@
   cursor: e-resize !important;
 }
 
-/* Hide resize handles when minimized */
-#conversation-tree-overlay.minimized .resize-handle {
-  display: none !important;
-}
-
 /* Node tooltip styles */
 .node-tooltip {
   position: absolute;
@@ -644,14 +620,38 @@ container styling */
   transition: all 0.15s ease;
 }
 
-.minimize-btn:hover {
-  background: var(--main-surface-secondary, #f7f7f8);
-  color: var(--text-primary, #374151);
+/* Hide header bar and collapse top gap */
+.tree-controls {
+  display: none !important;
+}
+.tree-container {
+  padding-top: 0 !important;
 }
 
-/* Minimized state icon */
-#conversation-tree-overlay.minimized .minimize-btn {
-  position: static;
-  font-size: 20px;
-  color: var(--text-secondary, #6b7280);
+/* Remove bottom gap to allow the tree to fill the overlay */
+.tree-container {
+  max-height: none !important;
+  height: 100%     !important;
+  cursor: default !important;
+}
+
+/* Position drag handle 8px from top and right edges */
+#conversation-tree-overlay .minimize-btn {
+  position: absolute !important;
+  top: 6px !important;
+  right: 8px !important;
+  cursor: grab !important;
+}
+
+/* Remove hover effect from drag handle */
+#conversation-tree-overlay .minimize-btn:hover {
+  background: none !important;
+  transform: none !important;
+  box-shadow: none !important;
+  cursor: grab !important;
+}
+
+/* Show grabbing cursor when actively dragging */
+#conversation-tree-overlay .minimize-btn:active {
+  cursor: grabbing !important;
 }

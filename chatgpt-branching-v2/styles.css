@@ -597,8 +597,8 @@
 
 /* Toggle button ON state - Light Mode */
 #simple-tree-toggle.active {
-  background-color: #212121 !important;
-  color: #f3f3f3 !important;
+  background: transparent !important;
+  color: #212121 !important;
   opacity: 1 !important;
 }
 
@@ -611,8 +611,8 @@
 
 /* Toggle button hover - Light Mode */
 #simple-tree-toggle:hover {
-  background-color: #212121 !important;
-  color: #f3f3f3 !important;
+  background-color: #F2F2F2 !important;
+  color: #212121 !important;
 }
 
 /* Dark Mode Toggle Button Styling */
@@ -621,8 +621,8 @@
 }
 
 [data-theme="dark"] #simple-tree-toggle.active {
-  background-color: #f3f3f3 !important;
-  color: #212121 !important;
+  background: transparent !important;
+  color: #f3f3f3 !important;
   opacity: 1 !important;
 }
 
@@ -643,8 +643,8 @@
   }
 
   #simple-tree-toggle.active {
-    background-color: #f3f3f3 !important;
-    color: #212121 !important;
+    background: transparent !important;
+    color: #f3f3f3 !important;
     opacity: 1 !important;
   }
 

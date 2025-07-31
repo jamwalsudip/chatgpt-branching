@@ -141,6 +141,13 @@
   position: relative;
   background: rgba(255, 255, 255, 0.02);
   /* max-height will be set dynamically by JavaScript */
+  /* Add centering for dynamic width trees */
+  display: flex;
+  justify-content: center;  /* Centers entire SVG horizontally */
+  align-items: flex-start;  /* Keep top alignment */
+  /* Ensure container can grow with content */
+  width: 100%;
+  max-width: none;
 }
 
 /* Custom scrollbar styling */
@@ -187,6 +194,24 @@
 .tree-node {
   cursor: pointer;
   /* Hover effects are now handled via JavaScript for proper SVG scaling */
+  /* Animate opacity and transform. Add transform-origin for proper scaling. */
+  transition:
+    opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    stroke-width 0.15s ease-out;
+  transform-origin: center; /* Ensures scaling happens from the center */
+}
+
+.node-entering {
+  /* The state nodes will be in when they are first added to the DOM */
+  opacity: 0 !important;
+  transform: translateY(20px) !important;
+}
+
+.text-entering {
+  /* The state text elements will be in when they are first added to the DOM */
+  opacity: 0 !important;
+  transform: translateY(20px) !important;
 }
 
 /* Light mode tooltip */
@@ -342,45 +367,8 @@
   }
 }
 
-/* Enhanced animations */
-.tree-svg circle {
-  animation: nodeAppear 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.tree-svg path {
-  animation: pathDraw 0.8s ease-out;
-}
-
-@keyframes nodeAppear {
-  0% {
-    opacity: 0;
-    transform: scale(0.3);
-  }
-
-  50% {
-    opacity: 0.8;
-    transform: scale(1.1);
-  }
-
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes pathDraw {
-  from {
-    stroke-dasharray: 1000;
-    stroke-dashoffset: 1000;
-    opacity: 0;
-  }
-
-  to {
-    stroke-dasharray: 1000;
-    stroke-dashoffset: 0;
-    opacity: 0.8;
-  }
-}
+/* Enhanced animations - removed conflicting animations */
+/* The entrance animations are now handled via .node-entering/.text-entering classes */
 
 /* Hover effects for the entire overlay */
 #conversation-tree-overlay:not(.minimized):hover {
@@ -704,13 +692,25 @@ container styling */
   flex: 1;
   padding: 16px;
   background: transparent;
-  overflow: hidden;
+  overflow: auto !important;  /* Enable scrolling instead of hidden */
   position: relative;
+  /* Add centering for dynamic width trees */
+  display: flex;
+  justify-content: center;  /* Centers entire SVG horizontally */
+  align-items: flex-start;  /* Keep top alignment */
+  /* Ensure container can grow with content */
+  width: 100%;
+  max-width: none;
 }
 
 .tree-svg {
-  width: 100%;
-  height: 100%;
+  /* Remove fixed width, allow dynamic width from JavaScript */
+  /* width: 800px !important; ← Removed to allow dynamic width */
+  min-width: 300px !important;   /* Minimum width for small trees */
+  /* max-width: removed - no maximum width constraint */
+  min-height: 300px !important;  /* Ensure minimum height for small trees */
+  display: block;
+  flex-shrink: 0;  /* Prevent SVG from shrinking in flex container */
 }
 
 /* Tree node styling - ChatGPT inspired */
@@ -762,6 +762,11 @@ container styling */
   text-anchor: middle;
   dominant-baseline: middle;
   opacity: 0.6;
+  /* Add transition for smooth entrance animation */
+  transition:
+    opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: center;
 }
 
 /* Active branch text in light mode - off-white text on dark circle */
@@ -821,3 +826,5 @@ container styling */
 #conversation-tree-overlay .minimize-btn:active {
   cursor: grabbing !important;
 }
+
+

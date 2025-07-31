@@ -824,7 +824,7 @@ class ConversationTreeTracker {
     this.overlay.innerHTML = `
       <button class="minimize-btn" title="Drag handle" aria-label="Drag handle">☰</button>
       <div class="tree-container">
-        <svg class="tree-svg" width="100%" height="100%">
+        <svg class="tree-svg">
           <!-- Tree will be drawn here -->
         </svg>
       </div>
@@ -936,7 +936,7 @@ class ConversationTreeTracker {
       cachedOverlayHeight = rect.height;
       
       // Pre-calculate all boundary values to avoid Math.max/min during drag
-      const padding = 50;
+      const padding = 20;
       cachedMinX = padding;
       cachedMinY = padding;
       cachedMaxX = cachedViewportWidth - cachedOverlayWidth - padding;
@@ -1231,11 +1231,10 @@ class ConversationTreeTracker {
   updateTreeContainerHeight(overlayHeight) {
     const treeContainer = this.overlay.querySelector('.tree-container');
     if (treeContainer) {
-      // Let flexbox handle the height naturally, just set max-height for scrolling
-      const containerHeight = overlayHeight;
-      treeContainer.style.maxHeight = `${containerHeight}px`;
-      treeContainer.style.height = `${containerHeight}px`;
-      console.log(`Updated tree container max-height to: ${containerHeight}px (overlay: ${overlayHeight})`);
+      // Don't force the tree to fit container - let it scroll instead
+      treeContainer.style.maxHeight = `${overlayHeight}px`;
+      // Removed: treeContainer.style.height = `${containerHeight}px`; - this was forcing shrinking
+      console.log(`Updated tree container max-height to: ${overlayHeight}px (tree will scroll if needed)`);
     }
   }
 
@@ -2085,8 +2084,8 @@ class ConversationTreeTracker {
 
     // Enhanced styling constants
     const nodeRadius = 22;
-    const verticalSpacing = 70;
-    const horizontalSpacing = 50;
+    const verticalSpacing = 90; // Increased from 70
+    const horizontalSpacing = 80; // Increased from 50
     const containerWidth = container.offsetWidth || 300;
     const containerHeight = container.offsetHeight || 200;
 
@@ -2103,24 +2102,27 @@ class ConversationTreeTracker {
     const maxDepth = Math.max(...Array.from(depthGroups.keys()));
     const treeHeight = (maxDepth + 1) * verticalSpacing + 80; // Add padding
 
-    // Calculate required width based on tree structure
-    const maxNodesAtDepth = Math.max(...Array.from(depthGroups.values()).map(nodes => nodes.length));
-    const requiredWidth = Math.max(
-      maxNodesAtDepth * horizontalSpacing + 100, // Based on max nodes at any depth
-      600 // Minimum width
-    );
+    // Start position - we'll anchor everything relative to container center
+    const startY = 40; // Fixed top padding
 
-    // Use fixed dimensions that are calculated from tree structure
-    const FIXED_TREE_WIDTH = requiredWidth;
-    const FIXED_TREE_HEIGHT = Math.max(treeHeight, 200);
+    // Calculate dynamic width based on maximum branches at any depth
+    const maxBranchesAtAnyDepth = Math.max(...Array.from(depthGroups.values()).map(nodes => nodes.length));
+    const requiredWidth = maxBranchesAtAnyDepth * horizontalSpacing + 200; // 200px padding on sides
+    const MINIMUM_TREE_WIDTH = 300;
+    // No maximum width - tree can grow as wide as needed
+    const FIXED_TREE_WIDTH = Math.max(requiredWidth, MINIMUM_TREE_WIDTH);
+
+    console.log(`Dynamic width: ${maxBranchesAtAnyDepth} branches → ${FIXED_TREE_WIDTH}px width`);
+
+    // Phase 1: Use dynamic width, dynamic height based on tree structure
+    const calculatedHeight = startY + (maxDepth + 1) * verticalSpacing + 80; // Dynamic calculation
+    const MINIMUM_HEIGHT = 300;     // Minimum height for small trees
+    const FIXED_TREE_HEIGHT = Math.max(calculatedHeight, MINIMUM_HEIGHT);  // Dynamic but keeps variable name
 
     // Set SVG height to accommodate all content
     svg.setAttribute('width', FIXED_TREE_WIDTH);
     svg.setAttribute('height', FIXED_TREE_HEIGHT);
     svg.setAttribute('viewBox', `0 0 ${FIXED_TREE_WIDTH} ${FIXED_TREE_HEIGHT}`);
-
-    // Start position - we'll anchor everything relative to container center
-    const startY = 40; // Fixed top padding
 
     // Ensure defs exist (create once, reuse)
     let defs = svg.querySelector('defs');
@@ -2211,6 +2213,9 @@ class ConversationTreeTracker {
         circle.classList.add('current');
       }
       
+      // Add entrance animation class
+      circle.classList.add('node-entering');
+      
       circle.style.cursor = 'pointer';
       svg.appendChild(circle);
 
@@ -2250,12 +2255,28 @@ class ConversationTreeTracker {
         text.classList.add('current');
       }
       
+      // Add entrance animation class for text
+      text.classList.add('text-entering');
+      
       text.textContent = depth + 1;
       text.style.pointerEvents = 'none';
       svg.appendChild(text);
 
       nodeElements.set(node.id, { circle, text });
     });
+
+    // Trigger entrance animations after all nodes are in the DOM
+    setTimeout(() => {
+      this.conversationTree.nodes.forEach(node => {
+        const elements = nodeElements.get(node.id);
+        if (elements && elements.circle) {
+          elements.circle.classList.remove('node-entering');
+        }
+        if (elements && elements.text) {
+          elements.text.classList.remove('text-entering');
+        }
+      });
+    }, 10); // Small delay to ensure DOM is updated
 
     // Build connections based on actual parent relationships
     this.conversationTree.nodes.forEach(node => {

@@ -1846,17 +1846,21 @@ class ConversationTreeTracker {
 
       // If we have navigation buttons, look for the numerical indicator
     // Prefer explicit branch-indicator element (e.g. <div class="tabular-nums">2/3</div>) if present
-    let indicatorEl = turnArticle.querySelector('[class*="tabular-nums"]');
-    console.log('Indicator element:', indicatorEl);
-    const textContent = indicatorEl ? indicatorEl.textContent.trim() : (turnArticle.textContent || '');
-      const branchMatch = textContent.match(/(\d+)\s*\/\s*(\d+)/);
+let indicatorEl = turnArticle.querySelector('[class*="tabular-nums"]');
+console.log('Indicator element:', indicatorEl);
 
-      if (branchMatch) {
+if (indicatorEl) {
+    const textContent = indicatorEl.textContent.trim();
+    // Use a stricter regex that matches the entire string
+    const branchMatch = textContent.match(/^(\d+)\s*\/\s*(\d+)$/); 
+
+    if (branchMatch) {
         branchText = branchMatch[0];
-        currentBranch = parseInt(branchMatch[1]) - 1; // Convert to 0-based index
-        totalBranches = parseInt(branchMatch[2]);
-        console.log(`Found branch indicator: ${branchText} -> Current: ${currentBranch}, Total: ${totalBranches}`);
-    } else if (leftArrow || rightArrow) {
+        currentBranch = parseInt(branchMatch[1], 10) - 1;
+        totalBranches = parseInt(branchMatch[2], 10);
+        console.log(`Found branch indicator in dedicated element: ${branchText} -> Current: ${currentBranch}, Total: ${totalBranches}`);
+    }
+} else if (leftArrow || rightArrow) {
       // Arrows present but no numeric indicator: infer from button states
         totalBranches = 2; // Minimum assumption
 
@@ -1916,6 +1920,14 @@ class ConversationTreeTracker {
       branches // Add the branches array
     };
   }
+
+
+
+
+
+
+
+
 
   // Navigation function to switch between branches
   navigateToBranch(messageElement, targetBranchIndex, currentBranchIndex, depthToScroll) {

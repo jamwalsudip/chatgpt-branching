@@ -148,6 +148,9 @@
   /* Ensure container can grow with content */
   width: 100%;
   max-width: none;
+  /* Scrollbar styling */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
 /* Custom scrollbar styling */
@@ -172,6 +175,24 @@
 }
 
 .tree-container::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+.tree-container:hover::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+}
+
+.tree-container:hover::-webkit-scrollbar-thumb {
+  background: rgba(102, 126, 234, 0.6);
+  border-radius: 4px;
+}
+
+.tree-container:hover::-webkit-scrollbar-thumb:hover {
+  background: rgba(102, 126, 234, 0.8);
+}
+
+.tree-container:hover::-webkit-scrollbar-corner {
   background: transparent;
 }
 
@@ -686,21 +707,28 @@ html[data-theme="dark"] {
   --ct-text-secondary  : #a1a1aa;
   --ct-shadow          : 0 4px 14px rgba(0,0,0,.35);
 }
-/* Tree 
-container styling */
+/* Tree container styling - consolidated */
 .tree-container {
   flex: 1;
   padding: 16px;
   background: transparent;
   overflow: auto !important;  /* Enable scrolling instead of hidden */
   position: relative;
-  /* Add centering for dynamic width trees */
+  /* Remove centering to let JavaScript handle positioning */
   display: flex;
-  justify-content: center;  /* Centers entire SVG horizontally */
+  justify-content: center;  /* Let JavaScript handle positioning */
   align-items: flex-start;  /* Keep top alignment */
   /* Ensure container can grow with content */
   width: 100%;
   max-width: none;
+  /* Scrollbar styling */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  /* Additional properties from other rules */
+  padding-top: 0 !important;
+  max-height: none !important;
+  height: 100% !important;
+  cursor: default !important;
 }
 
 .tree-svg {
@@ -756,7 +784,7 @@ container styling */
 /* Tree text styling */
 .tree-svg text.tree-text {
   fill: #f3f3f3;
-  font-size: 22px;
+  font-size: 14px;
   font-weight: 700;
   font-family: system-ui, -apple-system, sans-serif;
   text-anchor: middle;
@@ -794,16 +822,6 @@ container styling */
 /* Hide header bar and collapse top gap */
 .tree-controls {
   display: none !important;
-}
-.tree-container {
-  padding-top: 0 !important;
-}
-
-/* Remove bottom gap to allow the tree to fill the overlay */
-.tree-container {
-  max-height: none !important;
-  height: 100%     !important;
-  cursor: default !important;
 }
 
 /* Position drag handle 8px from top and right edges */

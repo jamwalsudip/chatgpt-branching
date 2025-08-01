@@ -2083,9 +2083,9 @@ class ConversationTreeTracker {
     }
 
     // Enhanced styling constants
-    const nodeRadius = 22;
-    const verticalSpacing = 90; // Increased from 70
-    const horizontalSpacing = 80; // Increased from 50
+    const nodeRadius = 13;
+    const verticalSpacing = 60; // Reduced from 90
+    const horizontalSpacing = 50; // Reduced from 80
     const containerWidth = container.offsetWidth || 300;
     const containerHeight = container.offsetHeight || 200;
 
@@ -2100,14 +2100,26 @@ class ConversationTreeTracker {
 
     // Calculate tree height for SVG sizing
     const maxDepth = Math.max(...Array.from(depthGroups.keys()));
-    const treeHeight = (maxDepth + 1) * verticalSpacing + 80; // Add padding
+    
+    // Define proper top and bottom padding
+    const topPadding = 40;
+    const bottomPadding = 27;
+    
+    // Calculate total height with proper padding
+    const treeHeight = topPadding + (maxDepth + 1) * verticalSpacing + bottomPadding;
 
     // Start position - we'll anchor everything relative to container center
-    const startY = 40; // Fixed top padding
+    const startY = topPadding + nodeRadius; // Fixed top padding
 
     // Calculate dynamic width based on maximum branches at any depth
     const maxBranchesAtAnyDepth = Math.max(...Array.from(depthGroups.values()).map(nodes => nodes.length));
-    const requiredWidth = maxBranchesAtAnyDepth * horizontalSpacing + 200; // 200px padding on sides
+    
+    // Calculate the actual space needed for the nodes
+    const nodesWidth = (maxBranchesAtAnyDepth - 1) * horizontalSpacing; // Space between nodes
+    const leftPadding = 100 + nodeRadius; // Padding from left edge to leftmost node
+    const rightPadding = 100; // Padding from rightmost node to right edge
+    const requiredWidth = nodesWidth + leftPadding + rightPadding;
+    
     const MINIMUM_TREE_WIDTH = 300;
     // No maximum width - tree can grow as wide as needed
     const FIXED_TREE_WIDTH = Math.max(requiredWidth, MINIMUM_TREE_WIDTH);
@@ -2115,7 +2127,7 @@ class ConversationTreeTracker {
     console.log(`Dynamic width: ${maxBranchesAtAnyDepth} branches → ${FIXED_TREE_WIDTH}px width`);
 
     // Phase 1: Use dynamic width, dynamic height based on tree structure
-    const calculatedHeight = startY + (maxDepth + 1) * verticalSpacing + 80; // Dynamic calculation
+    const calculatedHeight = startY + (maxDepth + 1) * verticalSpacing + bottomPadding; // Dynamic calculation with proper padding
     const MINIMUM_HEIGHT = 300;     // Minimum height for small trees
     const FIXED_TREE_HEIGHT = Math.max(calculatedHeight, MINIMUM_HEIGHT);  // Dynamic but keeps variable name
 
@@ -2154,14 +2166,26 @@ class ConversationTreeTracker {
 
     // Position root nodes (depth 0) evenly across the width
     const roots = depthGroups.get(0) || [];
-    const rootCenterX = FIXED_TREE_WIDTH / 2;
     const y0 = startY;
     const count0 = roots.length;
-    roots.forEach((node, idx) => {
-      const x0 = rootCenterX + (idx - (count0 - 1) / 2) * horizontalSpacing;
-      nodePositions.set(node.id, { x: x0, y: y0, depth: 0, branchIndex: idx });
-      console.log(`Root node ${node.id}: x=${x0}, y=${y0}, centerX=${rootCenterX}`);
-    });
+    
+    // Calculate the starting position for the leftmost node
+    const leftmostNodeX = leftPadding + nodeRadius;
+    const rightmostNodeX = FIXED_TREE_WIDTH - rightPadding;
+    
+    // If there's only one root node, center it
+    if (count0 === 1) {
+      const x0 = FIXED_TREE_WIDTH / 2;
+      nodePositions.set(roots[0].id, { x: x0, y: y0, depth: 0, branchIndex: 0 });
+      console.log(`Single root node ${roots[0].id}: x=${x0}, y=${y0}`);
+    } else {
+      // Distribute multiple nodes evenly
+      roots.forEach((node, idx) => {
+        const x0 = leftmostNodeX + (idx * (rightmostNodeX - leftmostNodeX)) / (count0 - 1);
+        nodePositions.set(node.id, { x: x0, y: y0, depth: 0, branchIndex: idx });
+        console.log(`Root node ${node.id}: x=${x0}, y=${y0}`);
+      });
+    }
 
     // Position other nodes based on their parent position
     depthGroups.forEach((nodes, depth) => {
@@ -2245,7 +2269,7 @@ class ConversationTreeTracker {
       text.setAttribute('y', y);
       text.setAttribute('dominant-baseline', 'middle');
       text.setAttribute('text-anchor', 'middle');
-      text.setAttribute('font-size', '22');
+      text.setAttribute('font-size', '14');
       text.setAttribute('font-weight', '700');
       text.setAttribute('font-family', 'system-ui, -apple-system, sans-serif');
       text.classList.add('tree-text');

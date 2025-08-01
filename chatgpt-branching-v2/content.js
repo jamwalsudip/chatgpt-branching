@@ -33,6 +33,8 @@ class ConversationTreeTracker {
 
     // Try to load existing conversation data
     this.loadExistingConversation();
+
+    setTimeout(() => this.replaceEditButtonIcons(), 1000); 
   }
 
   getConversationId() {
@@ -66,6 +68,7 @@ class ConversationTreeTracker {
     if (existingToggle) {
       existingToggle.remove();
     }
+
 
     // Try to find the Share button to position next to it
     const shareButton = this.findShareButton();
@@ -135,6 +138,41 @@ class ConversationTreeTracker {
 
     console.log('Native-styled toggle button created');
   }
+
+  // Add this new function inside your ConversationTreeTracker class
+replaceEditButtonIcons() {
+  // Find all buttons that still have the original "Edit message" label
+    const editButtons = document.querySelectorAll('button[aria-label="Edit message"]');
+
+    editButtons.forEach(button => {
+        const svg = button.querySelector('svg');
+        if (!svg) return;
+
+        // Also check if we haven't already replaced this icon
+        const alreadyReplaced = button.getAttribute('data-icon-replaced') === 'true';
+
+        if (!alreadyReplaced) {
+            console.log('Found an "Edit message" button to replace:', button);
+
+            // Set the SVG's dimensions and viewBox to ensure it displays correctly
+            svg.setAttribute('viewBox', '0 0 24 24'); // Set the coordinate system for the icon
+            svg.setAttribute('width', '20');          // Set the display width
+            svg.setAttribute('height', '20');         // Set the display height
+
+              // Replace the SVG content with the "Git Branch" icon, wrapped in a transform group to scale and center it.
+            svg.innerHTML = "<svg width='24' height='24' fill='none' stroke='currentColor' stroke-width='1.5' viewBox='0 0 24 24' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'>\
+  <path d='M6 15a3 3 0 1 1 0 6 3 3 0 0 1 0-6'/><path d='M18 9a3 3 0 1 1 0-6 3 3 0 0 1 0 6m0 0a9 9 0 0 1-9 9m-3-3V3'/>\
+</svg>";
+
+            // Change the hover tooltip text to "Add Branch"
+            button.setAttribute('aria-label', 'Add Branch');
+            button.setAttribute('title', 'Add Branch'); // Also set the title attribute for the visual tooltip
+
+            // Mark this button as replaced to avoid doing it again
+            button.setAttribute('data-icon-replaced', 'true');
+        }
+    });
+}
 
   findShareButton() {
     // Look for Share button with multiple selectors
@@ -1607,6 +1645,7 @@ class ConversationTreeTracker {
         clearTimeout(this.updateTimeout);
         this.updateTimeout = setTimeout(() => {
           this.extractConversationFromDOM();
+          this.replaceEditButtonIcons();
         }, 500);
       }
 
@@ -2128,8 +2167,8 @@ if (indicatorEl) {
     
     // Calculate the actual space needed for the nodes
     const nodesWidth = (maxBranchesAtAnyDepth - 1) * horizontalSpacing; // Space between nodes
-    const leftPadding = 100 + nodeRadius; // Padding from left edge to leftmost node
-    const rightPadding = 100; // Padding from rightmost node to right edge
+    const leftPadding = 175 + nodeRadius; // Padding from left edge to leftmost node
+    const rightPadding = 175; // Padding from rightmost node to right edge
     const requiredWidth = nodesWidth + leftPadding + rightPadding;
     
     const MINIMUM_TREE_WIDTH = 300;

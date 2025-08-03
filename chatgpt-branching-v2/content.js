@@ -34,7 +34,7 @@ class ConversationTreeTracker {
     // Try to load existing conversation data
     this.loadExistingConversation();
 
-    setTimeout(() => this.replaceEditButtonIcons(), 1000); 
+    setTimeout(() => this.replaceEditButtonIcons(), 1000);
   }
 
   getConversationId() {
@@ -90,7 +90,7 @@ class ConversationTreeTracker {
     `;
 
     // Apply ChatGPT-inspired button styling
-      Object.assign(this.toggleButton.style, {
+    Object.assign(this.toggleButton.style, {
       background: 'transparent',
       border: 'none',
       borderRadius: '6px',
@@ -140,39 +140,39 @@ class ConversationTreeTracker {
   }
 
   // Add this new function inside your ConversationTreeTracker class
-replaceEditButtonIcons() {
-  // Find all buttons that still have the original "Edit message" label
+  replaceEditButtonIcons() {
+    // Find all buttons that still have the original "Edit message" label
     const editButtons = document.querySelectorAll('button[aria-label="Edit message"]');
 
     editButtons.forEach(button => {
-        const svg = button.querySelector('svg');
-        if (!svg) return;
+      const svg = button.querySelector('svg');
+      if (!svg) return;
 
-        // Also check if we haven't already replaced this icon
-        const alreadyReplaced = button.getAttribute('data-icon-replaced') === 'true';
+      // Also check if we haven't already replaced this icon
+      const alreadyReplaced = button.getAttribute('data-icon-replaced') === 'true';
 
-        if (!alreadyReplaced) {
-            console.log('Found an "Edit message" button to replace:', button);
+      if (!alreadyReplaced) {
+        console.log('Found an "Edit message" button to replace:', button);
 
-            // Set the SVG's dimensions and viewBox to ensure it displays correctly
-            svg.setAttribute('viewBox', '0 0 24 24'); // Set the coordinate system for the icon
-            svg.setAttribute('width', '20');          // Set the display width
-            svg.setAttribute('height', '20');         // Set the display height
+        // Set the SVG's dimensions and viewBox to ensure it displays correctly
+        svg.setAttribute('viewBox', '0 0 24 24'); // Set the coordinate system for the icon
+        svg.setAttribute('width', '20');          // Set the display width
+        svg.setAttribute('height', '20');         // Set the display height
 
-              // Replace the SVG content with the "Git Branch" icon, wrapped in a transform group to scale and center it.
-            svg.innerHTML = "<svg width='24' height='24' fill='none' stroke='currentColor' stroke-width='1.5' viewBox='0 0 24 24' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'>\
+        // Replace the SVG content with the "Git Branch" icon, wrapped in a transform group to scale and center it.
+        svg.innerHTML = "<svg width='24' height='24' fill='none' stroke='currentColor' stroke-width='1.5' viewBox='0 0 24 24' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'>\
   <path d='M6 15a3 3 0 1 1 0 6 3 3 0 0 1 0-6'/><path d='M18 9a3 3 0 1 1 0-6 3 3 0 0 1 0 6m0 0a9 9 0 0 1-9 9m-3-3V3'/>\
 </svg>";
 
-            // Change the hover tooltip text to "Add Branch"
-            button.setAttribute('aria-label', 'Add Branch');
-            button.setAttribute('title', 'Add Branch'); // Also set the title attribute for the visual tooltip
+        // Change the hover tooltip text to "Add Branch"
+        button.setAttribute('aria-label', 'Add Branch');
+        button.setAttribute('title', 'Add Branch'); // Also set the title attribute for the visual tooltip
 
-            // Mark this button as replaced to avoid doing it again
-            button.setAttribute('data-icon-replaced', 'true');
-        }
+        // Mark this button as replaced to avoid doing it again
+        button.setAttribute('data-icon-replaced', 'true');
+      }
     });
-}
+  }
 
   findShareButton() {
     // Look for Share button with multiple selectors
@@ -919,7 +919,7 @@ replaceEditButtonIcons() {
     // Global flag to block tree/DOM updates during drag
     this.isDragging = false;
     let initialX, initialY;
-    
+
     // Cached values to avoid repeated DOM queries during drag
     let cachedViewportWidth, cachedViewportHeight, cachedOverlayWidth, cachedOverlayHeight;
     let cachedMinX, cachedMaxX, cachedMinY, cachedMaxY; // Pre-calculated boundaries
@@ -946,8 +946,8 @@ replaceEditButtonIcons() {
         startX = window.innerWidth - rect.width - 50; // Default right padding
       }
     } else {
-        const rect = this.overlay.getBoundingClientRect();
-        startX = window.innerWidth - rect.width - 50; // Default right padding
+      const rect = this.overlay.getBoundingClientRect();
+      startX = window.innerWidth - rect.width - 50; // Default right padding
     }
     this.overlay.style.transform = `translate3d(${startX}px, ${startY}px, 0)`;
 
@@ -958,10 +958,10 @@ replaceEditButtonIcons() {
       // Cancel any pending DOM update or streaming end timers
       clearTimeout(this.updateTimeout);
       clearTimeout(this.streamingEndTimeout);
-      
+
       // Temporarily disable observers during drag to prevent interference
       this.pauseObservers();
-      
+
       const currentPos = getTransform();
       initialX = e.clientX - currentPos.x;
       initialY = e.clientY - currentPos.y;
@@ -972,7 +972,7 @@ replaceEditButtonIcons() {
       cachedViewportHeight = document.documentElement.clientHeight;
       cachedOverlayWidth = rect.width;
       cachedOverlayHeight = rect.height;
-      
+
       // Pre-calculate all boundary values to avoid Math.max/min during drag
       const padding = 20;
       cachedMinX = padding;
@@ -982,11 +982,11 @@ replaceEditButtonIcons() {
 
       this.overlay.style.transition = 'none';
       header.style.cursor = 'grabbing';
-      
+
       // Add high-performance styles during drag
       this.overlay.style.willChange = 'transform';
       this.overlay.style.pointerEvents = 'none'; // Prevent hover effects during drag
-      
+
       e.preventDefault();
     };
 
@@ -998,11 +998,11 @@ replaceEditButtonIcons() {
       const newY = e.clientY - initialY;
 
       // Apply boundary constraints directly
-      const constrainedX = newX < cachedMinX ? cachedMinX : 
-                          newX > cachedMaxX ? cachedMaxX : newX;
-      const constrainedY = newY < cachedMinY ? cachedMinY : 
-                          newY > cachedMaxY ? cachedMaxY : newY;
-      
+      const constrainedX = newX < cachedMinX ? cachedMinX :
+        newX > cachedMaxX ? cachedMaxX : newX;
+      const constrainedY = newY < cachedMinY ? cachedMinY :
+        newY > cachedMaxY ? cachedMaxY : newY;
+
       // Immediate DOM update without requestAnimationFrame
       this.overlay.style.transform = `translate3d(${constrainedX}px, ${constrainedY}px, 0)`;
     };
@@ -1013,13 +1013,13 @@ replaceEditButtonIcons() {
       this.isDragging = false;
       // After drag, trigger final DOM extraction (lighter than full render with logs)
       setTimeout(() => this.extractConversationFromDOM(), 0);
-      
+
       // Re-enable observers
       this.resumeObservers();
-      
+
       header.style.cursor = 'grab';
       this.overlay.style.transition = '';
-      
+
       // Remove high-performance styles
       this.overlay.style.willChange = 'auto';
       this.overlay.style.pointerEvents = 'auto';
@@ -1117,7 +1117,7 @@ replaceEditButtonIcons() {
       // Clamp position
       newX = Math.max(padding, newX);
       newY = Math.max(padding, newY);
-      
+
       if (newX + newWidth > viewportWidth - padding) {
         newWidth = viewportWidth - padding - newX;
       }
@@ -1203,7 +1203,7 @@ replaceEditButtonIcons() {
     element.addEventListener('mouseenter', () => {
       // Clear any existing timeout
       clearTimeout(hoverTimeout);
-      
+
       // Show tooltip after 100ms debounce to reduce creation frequency
       hoverTimeout = setTimeout(() => {
         this.showTooltip(node, element);
@@ -1226,12 +1226,12 @@ replaceEditButtonIcons() {
       this.tooltipElement = document.createElement('div');
       this.tooltipElement.className = 'node-tooltip';
     }
-    
+
     const tooltip = this.tooltipElement;
-    
+
     // Update content only if it changed
     if (tooltip.textContent !== node.content) {
-    tooltip.textContent = node.content;
+      tooltip.textContent = node.content;
     }
 
     // Get the circle's actual position and the container's position
@@ -1629,7 +1629,7 @@ replaceEditButtonIcons() {
             if (mutation.target.tagName === 'BUTTON' &&
               (mutation.attributeName === 'disabled' || mutation.attributeName === 'aria-disabled') &&
               (mutation.target.getAttribute('aria-label')?.includes('Previous response') ||
-               mutation.target.getAttribute('aria-label')?.includes('Next response'))) {
+                mutation.target.getAttribute('aria-label')?.includes('Next response'))) {
               shouldUpdate = true;
             }
           }
@@ -1811,12 +1811,12 @@ replaceEditButtonIcons() {
       // Build parent-child relationships
       const nodeMap = new Map();
       nodes.forEach(node => nodeMap.set(node.id, node));
-      
+
       console.log('=== DEBUG: Node structure before parent assignment ===');
       nodes.forEach(node => {
         console.log(`Node ${node.id}: depth=${node.depth}, branchIndex=${node.branchIndex}, isCurrentBranch=${node.isCurrentBranch}`);
       });
-      
+
       // Set parentId for each node based on depth and branching
       nodes.forEach(node => {
         if (node.depth === 0) {
@@ -1828,16 +1828,15 @@ replaceEditButtonIcons() {
             // Assign parent based on current branch context
             // If this node is part of the current branch, find the current branch parent
             // If not, assign to the first available parent (fallback)
-            let parentNode;
-            if (node.isCurrentBranch) {
-              // Find the current branch parent at previous depth
-              parentNode = nodesAtPrevDepth.find(n => n.isCurrentBranch);
+            const parentNode = nodesAtPrevDepth.find(n => n.isCurrentBranch);
+
+            if (parentNode) {
+              node.parentId = parentNode.id;
+              console.log(`Assigned ${node.id} to the correct active parent ${parentNode.id}`);
+            } else {
+              // This is a safer fallback in case something goes wrong
+              node.parentId = nodesAtPrevDepth.length > 0 ? nodesAtPrevDepth[0].id : null;
             }
-            if (!parentNode) {
-              // Fallback: assign to first parent at previous depth
-              parentNode = nodesAtPrevDepth[0];
-            }
-            node.parentId = parentNode.id;
             console.log(`Assigned ${node.id} to parent ${parentNode.id} (isCurrentBranch=${node.isCurrentBranch})`);
           } else {
             node.parentId = null; // Fallback
@@ -1883,38 +1882,38 @@ replaceEditButtonIcons() {
     let currentBranch = 0;
     let totalBranches = 1;
 
-      // If we have navigation buttons, look for the numerical indicator
+    // If we have navigation buttons, look for the numerical indicator
     // Prefer explicit branch-indicator element (e.g. <div class="tabular-nums">2/3</div>) if present
-let indicatorEl = turnArticle.querySelector('[class*="tabular-nums"]');
-console.log('Indicator element:', indicatorEl);
+    let indicatorEl = turnArticle.querySelector('[class*="tabular-nums"]');
+    console.log('Indicator element:', indicatorEl);
 
-if (indicatorEl) {
-    const textContent = indicatorEl.textContent.trim();
-    // Use a stricter regex that matches the entire string
-    const branchMatch = textContent.match(/^(\d+)\s*\/\s*(\d+)$/); 
+    if (indicatorEl) {
+      const textContent = indicatorEl.textContent.trim();
+      // Use a stricter regex that matches the entire string
+      const branchMatch = textContent.match(/^(\d+)\s*\/\s*(\d+)$/);
 
-    if (branchMatch) {
+      if (branchMatch) {
         branchText = branchMatch[0];
         currentBranch = parseInt(branchMatch[1], 10) - 1;
         totalBranches = parseInt(branchMatch[2], 10);
         console.log(`Found branch indicator in dedicated element: ${branchText} -> Current: ${currentBranch}, Total: ${totalBranches}`);
-    }
-} else if (leftArrow || rightArrow) {
+      }
+    } else if (leftArrow || rightArrow) {
       // Arrows present but no numeric indicator: infer from button states
-        totalBranches = 2; // Minimum assumption
+      totalBranches = 2; // Minimum assumption
 
-        if (leftDisabled && !rightDisabled) {
-          currentBranch = 0; // First branch
-        } else if (!leftDisabled && rightDisabled) {
-          currentBranch = 1; // Assume second branch (could be last)
-        } else if (!leftDisabled && !rightDisabled) {
-          currentBranch = 1; // Middle branch
-          totalBranches = 3; // Minimum for middle position
-        } else {
-          currentBranch = 0; // Default
-        }
+      if (leftDisabled && !rightDisabled) {
+        currentBranch = 0; // First branch
+      } else if (!leftDisabled && rightDisabled) {
+        currentBranch = 1; // Assume second branch (could be last)
+      } else if (!leftDisabled && !rightDisabled) {
+        currentBranch = 1; // Middle branch
+        totalBranches = 3; // Minimum for middle position
+      } else {
+        currentBranch = 0; // Default
+      }
 
-        console.log(`No text indicator, inferred from button states: Current: ${currentBranch}, Total: ${totalBranches}`);
+      console.log(`No text indicator, inferred from button states: Current: ${currentBranch}, Total: ${totalBranches}`);
     } else {
       // No arrows and no numeric indicator => single branch
       currentBranch = 0;
@@ -2098,7 +2097,7 @@ if (indicatorEl) {
 
     const svg = this.overlay.querySelector('.tree-svg');
     const container = this.overlay.querySelector('.tree-container');
-    
+
     // --- Cleanup: always start with a fresh SVG (keep <defs> only) ---
     {
       const defsEl = svg.querySelector('defs');
@@ -2119,7 +2118,7 @@ if (indicatorEl) {
       const defs = svg.querySelector('defs');
       svg.innerHTML = '';
       if (defs) svg.appendChild(defs);
-      
+
       // Add empty state message
       const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       text.setAttribute('x', '50%');
@@ -2151,11 +2150,11 @@ if (indicatorEl) {
 
     // Calculate tree height for SVG sizing
     const maxDepth = Math.max(...Array.from(depthGroups.keys()));
-    
+
     // Define proper top and bottom padding
     const topPadding = 40;
     const bottomPadding = 27;
-    
+
     // Calculate total height with proper padding
     const treeHeight = topPadding + (maxDepth + 1) * verticalSpacing + bottomPadding;
 
@@ -2164,13 +2163,13 @@ if (indicatorEl) {
 
     // Calculate dynamic width based on maximum branches at any depth
     const maxBranchesAtAnyDepth = Math.max(...Array.from(depthGroups.values()).map(nodes => nodes.length));
-    
+
     // Calculate the actual space needed for the nodes
     const nodesWidth = (maxBranchesAtAnyDepth - 1) * horizontalSpacing; // Space between nodes
     const leftPadding = 175 + nodeRadius; // Padding from left edge to leftmost node
     const rightPadding = 175; // Padding from rightmost node to right edge
     const requiredWidth = nodesWidth + leftPadding + rightPadding;
-    
+
     const MINIMUM_TREE_WIDTH = 300;
     // No maximum width - tree can grow as wide as needed
     const FIXED_TREE_WIDTH = Math.max(requiredWidth, MINIMUM_TREE_WIDTH);
@@ -2191,12 +2190,12 @@ if (indicatorEl) {
     let defs = svg.querySelector('defs');
     if (!defs) {
       defs = this.createSVGDefs();
-    svg.appendChild(defs);
+      svg.appendChild(defs);
     }
 
     // Store node positions for connection drawing
     const nodePositions = new Map();
-    
+
     // Create a map of node IDs to their visual elements
     const nodeElements = new Map();
 
@@ -2219,11 +2218,11 @@ if (indicatorEl) {
     const roots = depthGroups.get(0) || [];
     const y0 = startY;
     const count0 = roots.length;
-    
+
     // Calculate the starting position for the leftmost node
     const leftmostNodeX = leftPadding + nodeRadius;
     const rightmostNodeX = FIXED_TREE_WIDTH - rightPadding;
-    
+
     // If there's only one root node, center it
     if (count0 === 1) {
       const x0 = FIXED_TREE_WIDTH / 2;
@@ -2250,7 +2249,7 @@ if (indicatorEl) {
         const offset = (idx - (count - 1) / 2) * horizontalSpacing;
         const x = parentPos.x + offset;
         nodePositions.set(node.id, { x, y, depth, branchIndex: idx });
-        
+
         // Debug logging
         console.log(`Node ${node.id} (depth ${depth}): parent=${node.parentId}, siblings=${count}, idx=${idx}, x=${x}, y=${y}`);
       });
@@ -2270,7 +2269,7 @@ if (indicatorEl) {
       circle.setAttribute('r', nodeRadius);
       circle.setAttribute('stroke-width', '2');
       circle.setAttribute('filter', 'url(#dropShadow)');
-      
+
       // Set initial fill and stroke attributes for CSS hover to work
       // CSS will override these based on theme and state
       if (isCurrentBranch) {
@@ -2280,17 +2279,17 @@ if (indicatorEl) {
         circle.setAttribute('fill', '#808080');
         circle.setAttribute('stroke', '#808080');
       }
-      
+
       circle.classList.add('tree-node');
-      
+
       // Add 'current' class for active branches to use CSS styling
       if (isCurrentBranch) {
         circle.classList.add('current');
       }
-      
+
       // Add entrance animation class
       circle.classList.add('node-entering');
-      
+
       circle.style.cursor = 'pointer';
       svg.appendChild(circle);
 
@@ -2301,18 +2300,18 @@ if (indicatorEl) {
           this.scrollToMessage(node, depth);
         }
       });
-      
+
       // Add proper SVG hover scaling without position shift
       circle.addEventListener('mouseenter', () => {
         const currentRadius = parseFloat(circle.getAttribute('r'));
         circle.style.transition = 'r 0.15s ease-out, stroke-width 0.15s ease-out';
         circle.setAttribute('r', currentRadius * 1.2);
       });
-      
+
       circle.addEventListener('mouseleave', () => {
         circle.setAttribute('r', nodeRadius);
       });
-      
+
       this.addTooltip(circle, node);
 
       const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
@@ -2324,15 +2323,15 @@ if (indicatorEl) {
       text.setAttribute('font-weight', '700');
       text.setAttribute('font-family', 'system-ui, -apple-system, sans-serif');
       text.classList.add('tree-text');
-      
+
       // Add 'current' class for active branch text styling
       if (isCurrentBranch) {
         text.classList.add('current');
       }
-      
+
       // Add entrance animation class for text
       text.classList.add('text-entering');
-      
+
       text.textContent = depth + 1;
       text.style.pointerEvents = 'none';
       svg.appendChild(text);
@@ -2357,7 +2356,7 @@ if (indicatorEl) {
     this.conversationTree.nodes.forEach(node => {
       if (!node.parentId) return; // root has no parent
       const parentPos = nodePositions.get(node.parentId);
-      const nodePos   = nodePositions.get(node.id);
+      const nodePos = nodePositions.get(node.id);
       if (!parentPos || !nodePos) return;
 
       const siblings = parentMap.get(node.parentId) || [];
@@ -2379,19 +2378,19 @@ if (indicatorEl) {
 
       // Determine if this branch connection is part of the current active path
       const isCurrentBranch = node.isCurrentBranch !== false;
-      
+
       const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
       path.setAttribute('d', pathData.trim());
       path.setAttribute('stroke-width', '2');
       path.setAttribute('fill', 'none');
       path.setAttribute('stroke-linecap', 'round');
       path.classList.add('tree-line');
-      
+
       // Add class for active branch styling
       if (isCurrentBranch) {
         path.classList.add('current');
       }
-      
+
       svg.appendChild(path);
     });
   }

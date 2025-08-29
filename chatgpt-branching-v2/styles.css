@@ -141,6 +141,16 @@
   position: relative;
   background: rgba(255, 255, 255, 0.02);
   /* max-height will be set dynamically by JavaScript */
+  /* Add centering for dynamic width trees */
+  display: flex;
+  justify-content: center;  /* Centers entire SVG horizontally */
+  align-items: flex-start;  /* Keep top alignment */
+  /* Ensure container can grow with content */
+  width: 100%;
+  max-width: none;
+  /* Scrollbar styling */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
 /* Custom scrollbar styling */
@@ -168,6 +178,24 @@
   background: transparent;
 }
 
+.tree-container:hover::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+}
+
+.tree-container:hover::-webkit-scrollbar-thumb {
+  background: rgba(102, 126, 234, 0.6);
+  border-radius: 4px;
+}
+
+.tree-container:hover::-webkit-scrollbar-thumb:hover {
+  background: rgba(102, 126, 234, 0.8);
+}
+
+.tree-container:hover::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 .tree-svg {
   /* width: auto !important;  -- removed to let SVG attribute size win */
   /* height: auto !important; -- removed to let SVG attribute size win */
@@ -187,6 +215,24 @@
 .tree-node {
   cursor: pointer;
   /* Hover effects are now handled via JavaScript for proper SVG scaling */
+  /* Animate opacity and transform. Add transform-origin for proper scaling. */
+  transition:
+    opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    stroke-width 0.15s ease-out;
+  transform-origin: center; /* Ensures scaling happens from the center */
+}
+
+.node-entering {
+  /* The state nodes will be in when they are first added to the DOM */
+  opacity: 0 !important;
+  transform: translateY(20px) !important;
+}
+
+.text-entering {
+  /* The state text elements will be in when they are first added to the DOM */
+  opacity: 0 !important;
+  transform: translateY(20px) !important;
 }
 
 /* Light mode tooltip */
@@ -260,6 +306,7 @@
   
   .tree-container {
     background: rgba(0, 0, 0, 0.1) !important;
+    
   }
 
   .tree-svg circle {
@@ -342,45 +389,8 @@
   }
 }
 
-/* Enhanced animations */
-.tree-svg circle {
-  animation: nodeAppear 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.tree-svg path {
-  animation: pathDraw 0.8s ease-out;
-}
-
-@keyframes nodeAppear {
-  0% {
-    opacity: 0;
-    transform: scale(0.3);
-  }
-
-  50% {
-    opacity: 0.8;
-    transform: scale(1.1);
-  }
-
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes pathDraw {
-  from {
-    stroke-dasharray: 1000;
-    stroke-dashoffset: 1000;
-    opacity: 0;
-  }
-
-  to {
-    stroke-dasharray: 1000;
-    stroke-dashoffset: 0;
-    opacity: 0.8;
-  }
-}
+/* Enhanced animations - removed conflicting animations */
+/* The entrance animations are now handled via .node-entering/.text-entering classes */
 
 /* Hover effects for the entire overlay */
 #conversation-tree-overlay:not(.minimized):hover {
@@ -698,19 +708,39 @@ html[data-theme="dark"] {
   --ct-text-secondary  : #a1a1aa;
   --ct-shadow          : 0 4px 14px rgba(0,0,0,.35);
 }
-/* Tree 
-container styling */
+/* Tree container styling - consolidated */
 .tree-container {
   flex: 1;
   padding: 16px;
   background: transparent;
-  overflow: hidden;
+  overflow: auto !important;  /* Enable scrolling instead of hidden */
   position: relative;
+  /* Remove centering to let JavaScript handle positioning */
+  display: flex;
+  justify-content: center;  /* Let JavaScript handle positioning */
+  align-items: flex-start;  /* Keep top alignment */
+  /* Ensure container can grow with content */
+  width: 100%;
+  max-width: none;
+  /* Scrollbar styling */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  /* Additional properties from other rules */
+  padding-top: 0 !important;
+  max-height: none !important;
+  height: 100% !important;
+  cursor: default !important;
 }
 
 .tree-svg {
-  width: 100%;
-  height: 100%;
+  /* Remove fixed width, allow dynamic width from JavaScript */
+  /* width: 800px !important; ← Removed to allow dynamic width */
+  min-width: 300px !important;   /* Minimum width for small trees */
+  /* max-width: removed - no maximum width constraint */
+  min-height: 300px !important;  /* Ensure minimum height for small trees */
+  display: block;
+  flex-shrink: 0;  /* Prevent SVG from shrinking in flex container */
+  
 }
 
 /* Tree node styling - ChatGPT inspired */
@@ -756,12 +786,17 @@ container styling */
 /* Tree text styling */
 .tree-svg text.tree-text {
   fill: #f3f3f3;
-  font-size: 22px;
+  font-size: 14px;
   font-weight: 700;
   font-family: system-ui, -apple-system, sans-serif;
   text-anchor: middle;
   dominant-baseline: middle;
   opacity: 0.6;
+  /* Add transition for smooth entrance animation */
+  transition:
+    opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: center;
 }
 
 /* Active branch text in light mode - off-white text on dark circle */
@@ -790,16 +825,6 @@ container styling */
 .tree-controls {
   display: none !important;
 }
-.tree-container {
-  padding-top: 0 !important;
-}
-
-/* Remove bottom gap to allow the tree to fill the overlay */
-.tree-container {
-  max-height: none !important;
-  height: 100%     !important;
-  cursor: default !important;
-}
 
 /* Position drag handle 8px from top and right edges */
 #conversation-tree-overlay .minimize-btn {
@@ -821,3 +846,29 @@ container styling */
 #conversation-tree-overlay .minimize-btn:active {
   cursor: grabbing !important;
 }
+
+/* Fix tree jerking/repositioning when nodes change */
+
+
+
+/* Additional fix: Prevent text changes from affecting layout */
+.tree-svg text.tree-text {
+  /* ... your existing styles ... */
+  
+  /* FIXED: Prevent text length changes from shifting layout */
+  text-rendering: geometricPrecision !important;
+  font-variant-numeric: tabular-nums !important;  /* Consistent character width */
+  
+  /* Stable text positioning */
+  transform: translateZ(0) !important;
+}
+
+/* Additional fix: Stabilize node positions */
+.tree-svg circle {
+  /* ... your existing styles ... */
+  
+  /* Prevent position shifts during state changes */
+  transform: translateZ(0) !important;
+  backface-visibility: hidden !important;
+}
+

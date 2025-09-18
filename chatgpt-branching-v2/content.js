@@ -8,6 +8,8 @@ class ConversationTreeTracker {
     };
     this.overlay = null;
     this.conversationId = null;
+    this.isVisible = false;
+    this.isExtensionVisible = false;
     this.init();
   }
 
@@ -62,6 +64,19 @@ class ConversationTreeTracker {
     localStorage.setItem(storageKey, JSON.stringify(this.conversationTree));
   }
 
+  setVisibilityPreference(isVisible, { persist = true } = {}) {
+    this.isVisible = isVisible;
+    this.isExtensionVisible = isVisible;
+
+    if (persist) {
+      try {
+        localStorage.setItem(`tree_toggle_${this.conversationId}`, isVisible.toString());
+      } catch (error) {
+        console.log('Failed to persist toggle state:', error);
+      }
+    }
+  }
+
   createSimpleToggle() {
     // Remove any existing simple toggle button
     const existingToggle = document.getElementById('simple-tree-toggle');
@@ -71,7 +86,13 @@ class ConversationTreeTracker {
 
 
     // Try to find the Share button to position next to it
-    const shareButton = this.findShareButton();
+    const shareButton = this.getActiveShareButton();
+    if (!shareButton) {
+      console.log('Share button not available. Deferring toggle creation.');
+      this.removeToggleButton();
+      this.hideOverlayForMissingShare();
+      return;
+    }
 
     // Create toggle button with native ChatGPT styling
     this.toggleButton = document.createElement('button');
@@ -107,21 +128,18 @@ class ConversationTreeTracker {
 
     // Load saved state
     const savedState = localStorage.getItem(`tree_toggle_${this.conversationId}`);
-    this.isVisible = savedState !== 'false'; // Default to true
+    const initialVisibility = savedState !== 'false'; // Default to true
+    this.setVisibilityPreference(initialVisibility, { persist: false });
 
-    // Position the button with error handling
+    // Insert next to share button
     try {
-      if (shareButton && shareButton.parentNode) {
-        // Insert next to share button
-        shareButton.parentNode.insertBefore(this.toggleButton, shareButton);
-        console.log('Toggle button positioned next to Share button');
-      } else {
-        // Fallback: add to page in top-right corner with native styling
-        this.addToggleToTopRight();
-      }
+      this.positionToggleNextToShare(shareButton);
+      console.log('Toggle button positioned next to Share button');
     } catch (error) {
-      console.log('Error positioning toggle button, using fallback:', error);
-      this.addToggleToTopRight();
+      console.log('Error positioning toggle button near Share button:', error);
+      this.removeToggleButton();
+      this.hideOverlayForMissingShare();
+      return;
     }
 
     // Set initial button color and extension visibility
@@ -130,9 +148,9 @@ class ConversationTreeTracker {
     // Add click handler
     this.toggleButton.addEventListener('click', () => {
       console.log('Native toggle button clicked! Current state:', this.isVisible);
-      this.isVisible = !this.isVisible;
+      const nextState = !this.isVisible;
+      this.setVisibilityPreference(nextState);
       console.log('New state:', this.isVisible);
-      localStorage.setItem(`tree_toggle_${this.conversationId}`, this.isVisible.toString());
       this.updateToggleState();
     });
 
@@ -271,6 +289,13 @@ class ConversationTreeTracker {
   updateToggleState() {
     console.log('Updating toggle state. isVisible:', this.isVisible);
 
+    const shareButton = this.getActiveShareButton();
+    if (!shareButton) {
+      console.log('Share button unavailable; hiding extension UI.');
+      this.hideOverlayForMissingShare();
+      return;
+    }
+
     if (this.toggleButton) {
       // Use CSS classes for styling instead of inline styles
       if (this.isVisible) {
@@ -314,11 +339,25 @@ class ConversationTreeTracker {
 
   ensureToggleButtonExists() {
     const existingToggle = document.getElementById('simple-tree-toggle');
+    const shareButton = this.getActiveShareButton();
+
+    if (!shareButton) {
+      if (existingToggle) {
+        console.log('Share button missing; removing toggle.');
+        this.removeToggleButton();
+      }
+      this.hideOverlayForMissingShare();
+      return;
+    }
 
     if (!existingToggle || !document.contains(existingToggle)) {
       console.log('Toggle button missing, recreating...');
       this.createSimpleToggle();
+      return;
     }
+
+    this.positionToggleNextToShare(shareButton);
+    this.updateToggleState();
   }
 
   setupToggleObserver() {
@@ -371,15 +410,119 @@ class ConversationTreeTracker {
     console.log('Toggle button observer set up');
   }
 
-  addToggleToTopRight() {
-    document.body.appendChild(this.toggleButton);
-    Object.assign(this.toggleButton.style, {
-      position: 'fixed',
-      top: '20px',
-      right: '20px',
-      zIndex: '999998'
-    });
-    console.log('Toggle button positioned in top-right corner (fallback)');
+  hideOverlayForMissingShare() {
+    this.persistOverlayMetrics();
+
+    if (this.overlay) {
+      this.overlay.style.setProperty('display', 'none', 'important');
+      this.overlay.remove();
+      this.overlay = null;
+    }
+  }
+
+  persistOverlayMetrics() {
+    if (!this.overlay) {
+      return;
+    }
+
+    try {
+      const rect = this.overlay.getBoundingClientRect();
+      const computedStyle = window.getComputedStyle(this.overlay);
+      const matrix = new DOMMatrix(computedStyle.transform);
+      const size = { width: Math.round(rect.width), height: Math.round(rect.height) };
+      const position = { x: Math.round(matrix.m41), y: Math.round(matrix.m42) };
+
+      localStorage.setItem(`chatgpt_tree_size_${this.conversationId}`, JSON.stringify(size));
+      localStorage.setItem(`chatgpt_tree_position_${this.conversationId}`, JSON.stringify(position));
+      console.log('Persisted overlay metrics:', { size, position });
+    } catch (error) {
+      console.log('Failed to persist overlay metrics:', error);
+    }
+  }
+
+  restoreOverlayMetrics() {
+    let sizeApplied = false;
+
+    const savedSize = localStorage.getItem(`chatgpt_tree_size_${this.conversationId}`);
+    if (savedSize) {
+      try {
+        const size = JSON.parse(savedSize);
+        if (size && size.width > 0 && size.height > 0) {
+          this.overlay.style.width = `${size.width}px`;
+          this.overlay.style.height = `${size.height}px`;
+          this.updateTreeContainerHeight(size.height);
+          sizeApplied = true;
+          console.log('Restored size:', size);
+        }
+      } catch (error) {
+        console.log('Error restoring size:', error);
+      }
+    }
+
+    if (!sizeApplied) {
+      this.overlay.style.width = '25vw';
+      this.overlay.style.height = '25vh';
+      setTimeout(() => {
+        const currentHeight = this.overlay.offsetHeight;
+        this.updateTreeContainerHeight(currentHeight);
+      }, 0);
+    }
+
+    const savedPosition = localStorage.getItem(`chatgpt_tree_position_${this.conversationId}`);
+    let startX = 0;
+    let startY = 50;
+
+    if (savedPosition) {
+      try {
+        const pos = JSON.parse(savedPosition);
+        if (typeof pos.x === 'number' && typeof pos.y === 'number') {
+          startX = pos.x;
+          startY = pos.y;
+          console.log('Restored position:', pos);
+        }
+      } catch (error) {
+        console.log('Error restoring position:', error);
+      }
+    } else {
+      const rect = this.overlay.getBoundingClientRect();
+      startX = Math.max(20, window.innerWidth - rect.width - 50);
+    }
+
+    this.overlay.style.transform = `translate3d(${startX}px, ${startY}px, 0)`;
+  }
+
+  getActiveShareButton() {
+    const shareButton = this.findShareButton();
+    if (!shareButton) {
+      return null;
+    }
+
+    if (!document.contains(shareButton)) {
+      return null;
+    }
+
+    if (!this.isElementVisible(shareButton)) {
+      return null;
+    }
+
+    return shareButton;
+  }
+
+  isElementVisible(element) {
+    const rect = element.getBoundingClientRect();
+    return rect.width > 0 && rect.height > 0;
+  }
+
+  positionToggleNextToShare(shareButton) {
+    if (!this.toggleButton || !shareButton || !shareButton.parentNode) {
+      return;
+    }
+
+    const parent = shareButton.parentNode;
+    if (this.toggleButton.parentNode !== parent || this.toggleButton.nextSibling !== shareButton) {
+      parent.insertBefore(this.toggleButton, shareButton);
+      console.log('Repositioned toggle next to Share button');
+    }
   }
 
   setupPersistentOverlay() {
@@ -392,6 +535,13 @@ class ConversationTreeTracker {
   }
 
   ensureOverlayExists() {
+    const shareButton = this.getActiveShareButton();
+
+    if (!shareButton || !this.toggleButton) {
+      this.hideOverlayForMissingShare();
+      return;
+    }
+
     const existingOverlay = document.getElementById('conversation-tree-overlay');
 
     if (!existingOverlay || !document.contains(existingOverlay)) {
@@ -465,14 +615,14 @@ class ConversationTreeTracker {
     });
 
     // Insert before share button
-    shareButton.parentNode.insertBefore(this.toggleButton, shareButton);
+    this.positionToggleNextToShare(shareButton);
 
     console.log('Toggle button created and inserted');
   }
 
   applyShareButtonStyling() {
     // Get the share button's computed styles to match exactly
-    const shareButton = this.findShareButton();
+    const shareButton = this.getActiveShareButton();
     if (shareButton) {
       const computedStyle = window.getComputedStyle(shareButton);
 
@@ -509,6 +659,9 @@ class ConversationTreeTracker {
       this.toggleButton.remove();
       this.toggleButton = null;
     }
+
+    // Ensure overlay goes away with the toggle
+    this.hideOverlayForMissingShare();
   }
 
   setupShareButtonManagement() {
@@ -525,7 +678,7 @@ class ConversationTreeTracker {
   }
 
   checkShareButtonAndUpdateState() {
-    const shareButton = this.findShareButton();
+    const shareButton = this.getActiveShareButton();
 
     if (shareButton && !this.toggleButton) {
       // Share button exists but toggle button doesn't - create it
@@ -536,32 +689,25 @@ class ConversationTreeTracker {
       // Share button gone but toggle button exists - remove it
       console.log('Share button gone, removing toggle button and hiding extension');
       this.removeToggleButton();
-      this.hideExtension();
+      this.hideOverlayForMissingShare();
     } else if (shareButton && this.toggleButton) {
       // Both exist - ensure extension visibility matches user preference
       this.updateExtensionVisibility();
     } else {
       // Neither exists - ensure extension is hidden
-      this.hideExtension();
+      this.hideOverlayForMissingShare();
     }
   }
 
   findShareButton() {
     const shareSelectors = [
-      '[data-testid*="share"]',
-      '[aria-label*="Share"]',
-      'button[title*="Share"]',
-      'button[aria-label*="share" i]',
-      'button[title*="share" i]',
-      'button:has(svg):has([d*="M18"])', // Share icon path
-      'button:has(svg):has([d*="share"])',
-      '.share-button',
-      '[class*="share"]',
-      'button:contains("Share")',
-      // ChatGPT specific selectors
-      'nav button[aria-label*="Share"]',
-      'header button[aria-label*="Share"]',
-      '.flex button[aria-label*="Share"]'
+      'button[aria-label="Share"]',
+      'button[aria-label="Share conversation"]',
+      'button[aria-label*="share conversation" i]',
+      'button[data-testid="share-button"]',
+      'button[data-testid="share-button-icon"]',
+      'button[title="Share"]',
+      'button[title="Share conversation"]'
     ];
 
     for (const selector of shareSelectors) {
@@ -625,6 +771,9 @@ class ConversationTreeTracker {
       this.toggleButton.remove();
       this.toggleButton = null;
     }
+
+    // Ensure overlay goes away with the toggle
+    this.hideOverlayForMissingShare();
   }
 
   updateExtensionVisibility() {
@@ -792,9 +941,8 @@ class ConversationTreeTracker {
   toggleExtensionVisibility() {
     console.log('Toggling extension from:', this.isExtensionVisible);
 
-    // Toggle state
-    this.isExtensionVisible = !this.isExtensionVisible;
-    this.saveToggleState();
+    const nextState = !this.isExtensionVisible;
+    this.setVisibilityPreference(nextState);
 
     // Update button using CSS classes
     if (this.toggleButton) {
@@ -851,9 +999,17 @@ class ConversationTreeTracker {
   createOverlay() {
     console.log('Creating overlay...');
 
-    // Remove any existing overlay
+    const shareButton = this.getActiveShareButton();
+    if (!shareButton || !this.toggleButton) {
+      console.log('Skipping overlay creation; toggle or Share button missing.');
+      return;
+    }
+
+    // Remove any existing overlay, persisting its metrics first
     const existing = document.getElementById('conversation-tree-overlay');
     if (existing) {
+      this.overlay = existing;
+      this.persistOverlayMetrics();
       existing.remove();
     }
 
@@ -877,31 +1033,24 @@ class ConversationTreeTracker {
     document.body.appendChild(this.overlay);
     console.log('Overlay added to DOM:', this.overlay);
 
-    // Show extension by default
-    this.overlay.style.display = 'flex';
-    this.isExtensionVisible = true;
+    // Start hidden until the Share button is available
+    this.overlay.style.display = 'none';
+    this.isExtensionVisible = this.isVisible ?? true;
     // Promote overlay to its own layer for smooth transforms
     this.overlay.style.willChange = 'transform';
-    this.overlay.style.transform = 'translateZ(0)';
 
-    // Make the overlay draggable
-    this.makeDraggable();
-
-    // Make the overlay resizable
-    this.makeResizable();
-
-    // Set a default position and size to prevent it from being off-screen
+    // Establish baseline style before applying saved metrics
     Object.assign(this.overlay.style, {
       top: '0px',
-      left: '0px',
-      width: '25vw',
-      height: '25vh',
-      display: 'flex',
-      transform: 'none'
+      left: '0px'
     });
 
-    // Load saved size and position
-    this.loadSavedSize();
+    // Apply persisted size and position (or fall back to defaults)
+    this.restoreOverlayMetrics();
+
+    // Enable interactions after metrics are restored
+    this.makeDraggable();
+    this.makeResizable();
 
     this.renderTree();
   }
@@ -929,28 +1078,6 @@ class ConversationTreeTracker {
       const matrix = new DOMMatrix(style.transform);
       return { x: matrix.m41, y: matrix.m42 };
     };
-
-    // Set initial position from saved data or default to top-right.
-    const savedPosition = localStorage.getItem(`chatgpt_tree_position_${this.conversationId}`);
-    let startX = 0;
-    let startY = 50; // Default top padding
-
-    if (savedPosition) {
-      try {
-        const pos = JSON.parse(savedPosition);
-        startX = pos.x;
-        startY = pos.y;
-      } catch (e) {
-        console.error("Failed to parse saved position", e);
-        const rect = this.overlay.getBoundingClientRect();
-        startX = window.innerWidth - rect.width - 50; // Default right padding
-      }
-    } else {
-      const rect = this.overlay.getBoundingClientRect();
-      startX = window.innerWidth - rect.width - 50; // Default right padding
-    }
-    this.overlay.style.transform = `translate3d(${startX}px, ${startY}px, 0)`;
-
 
     const dragStart = (e) => {
       isDragging = true;
@@ -1275,39 +1402,6 @@ class ConversationTreeTracker {
       console.log(`Updated tree container max-height to: ${overlayHeight}px (tree will scroll if needed)`);
     }
   }
-
-  loadSavedSize() {
-    const savedSize = localStorage.getItem(`chatgpt_tree_size_${this.conversationId}`);
-    if (savedSize) {
-      try {
-        const size = JSON.parse(savedSize);
-        if (size.width && size.height && size.width > 0 && size.height > 0) {
-          this.overlay.style.width = `${size.width}px`;
-          this.overlay.style.height = `${size.height}px`;
-
-          // Update tree container height
-          this.updateTreeContainerHeight(size.height);
-
-          console.log('Restored size:', size);
-        }
-      } catch (e) {
-        console.log('Error restoring size:', e);
-      }
-    } else {
-      // Set default size
-      this.overlay.style.width = '25vw';
-      this.overlay.style.height = '25vh';
-      // Set initial height for tree container
-      setTimeout(() => {
-        const currentHeight = this.overlay.offsetHeight;
-        this.updateTreeContainerHeight(currentHeight);
-      }, 100);
-    }
-  }
-
-
-
-
 
   interceptNetworkCalls() {
     // Intercept fetch calls to monitor ChatGPT API

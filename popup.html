@@ -94,14 +94,17 @@
   <div class="header">
     <div class="logo">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <line x1="6" y1="3" x2="6" y2="15"></line>
-        <circle cx="18" cy="6" r="3"></circle>
-        <circle cx="6" cy="18" r="3"></circle>
-        <path d="m18 9-3 3 3 3"></path>
+        <circle cx="5" cy="6" r="3"></circle>
+        <path d="M5 9v6"></path>
+        <circle cx="5" cy="18" r="3"></circle>
+        <path d="M12 3v18"></path>
+        <circle cx="18" cy="9" r="3"></circle>
+        <path d="M18 12v6"></path>
+        <circle cx="18" cy="21" r="3"></circle>
       </svg>
     </div>
-    <h1>ChatGPT Visual Branching</h1>
-    <p class="subtitle">Enhanced conversation branching</p>
+    <h1>ChatGPT Conversation Tree</h1>
+    <p class="subtitle">Visual conversation depth tracker</p>
   </div>
   
   <div id="status" class="status">
@@ -111,28 +114,29 @@
   <div class="features">
     <div class="feature">
       <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <polyline points="22,12 18,12 15,21 9,3 6,12 2,12"></polyline>
-      </svg>
-      Side-by-side branch comparison
-    </div>
-    <div class="feature">
-      <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <circle cx="12" cy="12" r="3"></circle>
-        <path d="m12 1 0 6m0 6 0 6m11-7-6 0m-6 0-6 0"></path>
+        <path d="M12 1v6m0 6v6"></path>
       </svg>
-      Visual branch navigation
+      Track conversation depth
     </div>
     <div class="feature">
       <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="m9 12 2 2 4-4"></path>
-        <path d="M21 12c.552 0 1-.448 1-1V5c0-.552-.448-1-1-1H3c-.552 0-1 .448-1 1v6c0 .552.448 1 1 1h18z"></path>
+        <path d="M6 3v12"></path>
+        <circle cx="18" cy="9" r="3"></circle>
+        <path d="M6 21l12-12"></path>
       </svg>
-      Branch selection & continuation
+      Visualize conversation branches
+    </div>
+    <div class="feature">
+      <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5Z"></path>
+      </svg>
+      Persistent across page reloads
     </div>
   </div>
   
   <div class="footer">
-    Visit ChatGPT to use branching features
+    Visit ChatGPT to see conversation tree
   </div>
   
   <script src="popup.js"></script>
